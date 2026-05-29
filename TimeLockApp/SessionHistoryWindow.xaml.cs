@@ -1,0 +1,65 @@
+using System.Windows;
+using TimeLockApp.Data;
+
+namespace TimeLockApp;
+
+public partial class SessionHistoryWindow : Window
+{
+    private readonly DatabaseService _databaseService;
+
+    //ล้างหน้าต่างนี้จะเป็นหน้าต่างที่แสดงประวัติการใช้งานของผู้ใช้ทั้งหมด โดยจะมีตารางที่แสดงข้อมูลการเข้าสู่ระบบและออกจากระบบของผู้ใช้แต่ละคน รวมถึงเวลาที่ใช้ในการใช้งานด้วย
+    private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBoxResult result = MessageBox.Show(
+            "ต้องการล้างประวัติการใช้งานทั้งหมดใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้",
+            "ยืนยันการล้างประวัติ",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning
+        );
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        _databaseService.ClearAllSessions();
+        LoadSessions();
+
+        MessageBox.Show(
+            "ล้างประวัติการใช้งานเรียบร้อยแล้ว",
+            "สำเร็จ",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information
+        );
+    }
+    // สร้างหน้าต่างประวัติการใช้งาน
+    public SessionHistoryWindow(DatabaseService databaseService)
+    {
+        InitializeComponent();
+
+        _databaseService = databaseService;
+
+        Loaded += SessionHistoryWindow_Loaded;
+    }
+
+    private void SessionHistoryWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        LoadSessions();
+    }
+
+    private void LoadSessions()
+    {
+        SessionsDataGrid.ItemsSource = null;
+        SessionsDataGrid.ItemsSource = _databaseService.GetAllSessions();
+    }
+
+    private void RefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        LoadSessions();
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+}
