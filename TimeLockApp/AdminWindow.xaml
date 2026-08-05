@@ -368,6 +368,13 @@
                         Margin="0 0 10 0"
                         Click="SessionHistoryButton_Click"/>
 
+                <Button Content="ทดสอบ Google Sheet"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="170"
+                        Height="40"
+                        Margin="0,0,10,0"
+                        Click="TestGoogleSheetButton_Click"/>
+
                 <Button Content="กลับหน้า Login"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Width="150"
@@ -380,6 +387,7 @@
                         Width="130"
                         Height="40"
                         Click="ExitButton_Click"/>
+
             </StackPanel>
         </Grid>
     </Grid>

@@ -1,0 +1,39 @@
+2026-08-05 10:55:02.089: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:55:02.089: [INFO] Profiles total count: 1
+2026-08-05 10:55:02.089: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=null
+2026-08-05 10:55:02.089: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:55:02.089: [INFO] OnDoneLoading sync enabled: 0
+2026-08-05 10:55:02.089: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-05 10:55:02.089: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-05 10:55:02.089: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 10:55:31.572: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 10:55:33.892: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:55:33.892: [INFO] Profiles total count: 1
+2026-08-05 10:55:33.892: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:55:16.964Z
+2026-08-05 10:55:33.892: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:55:33.892: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:55:16.964Z
+2026-08-05 10:55:33.892: [INFO] OnDoneLoading sync enabled: 0
+2026-08-05 10:55:33.892: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-05 10:55:33.892: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-05 10:55:33.892: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 10:56:20.908: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 10:58:16.337: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:58:16.337: [INFO] Profiles total count: 1
+2026-08-05 10:58:16.338: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:56:20.878Z
+2026-08-05 10:58:16.338: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 10:58:16.338: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:56:20.878Z
+2026-08-05 10:58:16.338: [INFO] OnDoneLoading sync enabled: 0
+2026-08-05 10:58:16.338: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-05 10:58:16.338: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-05 10:58:16.338: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 10:58:26.407: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 11:33:35.859: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 11:33:35.859: [INFO] Profiles total count: 1
+2026-08-05 11:33:35.860: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:58:26.384Z
+2026-08-05 11:33:35.860: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-05 11:33:35.860: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T10:58:26.384Z
+2026-08-05 11:33:35.860: [INFO] OnDoneLoading sync enabled: 0
+2026-08-05 11:33:35.860: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-05 11:33:35.860: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-05 11:33:35.860: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-05 11:33:48.625: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using TimeLockApp.Data;
+using TimeLockApp.Services;
 
 namespace TimeLockApp;
 
@@ -8,6 +9,7 @@ public partial class AdminWindow : Window
 {
     private readonly DatabaseService _databaseService;
     private UserRecord? _selectedUser;
+    private readonly GoogleSheetsUserService _googleSheetsUserService = new();
 
     public bool BackToLoginRequested { get; private set; }
 
@@ -18,6 +20,37 @@ public partial class AdminWindow : Window
         _databaseService = databaseService;
 
         Loaded += AdminWindow_Loaded;
+    }
+    private async void TestGoogleSheetButton_Click(
+    object sender,
+    RoutedEventArgs e)
+    {
+        MessageTextBlock.Text =
+            "กำลังอ่านข้อมูลจาก Google Sheet...";
+
+        try
+        {
+            var users =
+                await _googleSheetsUserService.GetUsersAsync();
+
+            MessageTextBlock.Text =
+                $"เชื่อมต่อสำเร็จ พบผู้ใช้ {users.Count} รายการ";
+
+            if (users.Count > 0)
+            {
+                var firstUser = users[0];
+
+                MessageTextBlock.Text +=
+                    $"\nรายการแรก: {firstUser.Username}, " +
+                    $"{firstUser.AllowedMinutes} นาที, " +
+                    $"Role: {firstUser.Role}";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageTextBlock.Text =
+                $"อ่าน Google Sheet ไม่สำเร็จ: {ex.Message}";
+        }
     }
     private void SessionHistoryButton_Click(object sender, RoutedEventArgs e)
     {
