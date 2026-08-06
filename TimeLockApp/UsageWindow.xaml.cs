@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Input;
 
@@ -5,6 +6,8 @@ namespace TimeLockApp;
 
 public partial class UsageWindow : Window
 {
+    public event EventHandler? LogoutRequested;
+
     public UsageWindow()
     {
         InitializeComponent();
@@ -29,6 +32,23 @@ public partial class UsageWindow : Window
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
+    }
+
+    private void LogoutButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        MessageBoxResult result = MessageBox.Show(
+            this,
+            "ต้องการออกจากระบบหรือไม่?",
+            "ยืนยันการออกจากระบบ",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            LogoutRequested?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

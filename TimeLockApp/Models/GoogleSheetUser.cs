@@ -12,16 +12,15 @@ public sealed class GoogleSheetUser
     public int AllowedMinutes { get; init; }
     public string Role { get; init; } = "";
     public bool IsActive { get; init; }
-    public string UpdatedAt { get; init; } = "";
 
     public static GoogleSheetUser Parse(
         IList<object> row,
         int rowNumber)
     {
-        if (row.Count < 7)
+        if (row.Count < 6)
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber} มีข้อมูลไม่ครบ 7 คอลัมน์");
+                $"แถวที่ {rowNumber} มีข้อมูลไม่ครบ 6 คอลัมน์");
         }
 
         string userIdText = GetCell(row, 0);
@@ -30,7 +29,7 @@ public sealed class GoogleSheetUser
         string allowedMinutesText = GetCell(row, 3);
         string role = GetCell(row, 4).ToLowerInvariant();
         string isActiveText = GetCell(row, 5);
-        string updatedAt = GetCell(row, 6);
+
 
         if (!int.TryParse(
                 userIdText,
@@ -86,7 +85,6 @@ public sealed class GoogleSheetUser
             AllowedMinutes = allowedMinutes,
             Role = role,
             IsActive = isActive,
-            UpdatedAt = updatedAt.Trim()
         };
     }
 

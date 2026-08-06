@@ -117,9 +117,6 @@
                               SelectionMode="Single"
                               SelectionChanged="UsersDataGrid_SelectionChanged">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID"
-                                                Binding="{Binding Id}"
-                                                Width="56"/>
                             <DataGridTextColumn Header="Username"
                                                 Binding="{Binding Username}"
                                                 Width="1.4*"/>
@@ -368,12 +365,13 @@
                         Margin="0 0 10 0"
                         Click="SessionHistoryButton_Click"/>
 
-                <Button Content="ทดสอบ Google Sheet"
+                <Button x:Name="SyncUsersButton"
+                        Content="Sync Users"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        Width="170"
+                        Width="130"
                         Height="40"
                         Margin="0,0,10,0"
-                        Click="TestGoogleSheetButton_Click"/>
+                        Click="SyncUsersButton_Click"/>
 
                 <Button Content="กลับหน้า Login"
                         Style="{StaticResource SecondaryButtonStyle}"

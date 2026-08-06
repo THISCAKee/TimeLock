@@ -4,6 +4,7 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,6 +51,85 @@ public sealed class GoogleSheetsUserService
         return users;
     }
 
+    public async Task<bool> SetUserActiveAsync(
+        int externalUserId,
+        bool isActive,
+        CancellationToken cancellationToken = default)
+    {
+        SheetsService service =
+            await GetSheetsServiceAsync(cancellationToken);
+
+        string userIdRange =
+            $"{GoogleSheetsConfig.WorksheetName}!A2:A";
+
+        SpreadsheetsResource.ValuesResource.GetRequest getRequest =
+            service.Spreadsheets.Values.Get(
+                GoogleSheetsConfig.SpreadsheetId,
+                userIdRange);
+
+        ValueRange response =
+            await getRequest.ExecuteAsync(cancellationToken);
+
+        IList<IList<object>> rows =
+            response.Values ?? new List<IList<object>>();
+
+        int sheetRow = 0;
+
+        for (int index = 0; index < rows.Count; index++)
+        {
+            IList<object> row = rows[index];
+
+            if (row.Count == 0)
+            {
+                continue;
+            }
+
+            string userIdText = Convert.ToString(
+                row[0],
+                CultureInfo.InvariantCulture) ?? "";
+
+            if (int.TryParse(
+                    userIdText,
+                    NumberStyles.Integer,
+                    CultureInfo.InvariantCulture,
+                    out int rowUserId) &&
+                rowUserId == externalUserId)
+            {
+                sheetRow = index + 2;
+                break;
+            }
+        }
+
+        if (sheetRow == 0)
+        {
+            return false;
+        }
+
+        var valueRange = new ValueRange
+        {
+            Values = new List<IList<object>>
+            {
+                new List<object> { isActive }
+            }
+        };
+
+        string updateRange =
+            $"{GoogleSheetsConfig.WorksheetName}!F{sheetRow}";
+
+        SpreadsheetsResource.ValuesResource.UpdateRequest updateRequest =
+            service.Spreadsheets.Values.Update(
+                valueRange,
+                GoogleSheetsConfig.SpreadsheetId,
+                updateRange);
+
+        updateRequest.ValueInputOption =
+            SpreadsheetsResource.ValuesResource.UpdateRequest
+                .ValueInputOptionEnum.RAW;
+
+        await updateRequest.ExecuteAsync(cancellationToken);
+        return true;
+    }
+
     private async Task<SheetsService> GetSheetsServiceAsync(
         CancellationToken cancellationToken)
     {
@@ -75,7 +155,7 @@ public sealed class GoogleSheetsUserService
             GoogleCredential
                 .FromStream(stream)
                 .CreateScoped(
-                    SheetsService.Scope.SpreadsheetsReadonly);
+                    SheetsService.Scope.Spreadsheets);
 
         cancellationToken.ThrowIfCancellationRequested();
 

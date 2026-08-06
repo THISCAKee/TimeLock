@@ -37,27 +37,50 @@
                            VerticalAlignment="Center"
                            HorizontalAlignment="Left"/>
 
-                <Button Content="—"
-                        Width="26"
-                        Height="20"
-                        FontSize="12"
-                        Background="#F3F4F6"
-                        Foreground="#111827"
-                        BorderThickness="0"
-                        Cursor="Hand"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Click="MinimizeButton_Click">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border Background="{TemplateBinding Background}"
-                                    CornerRadius="7">
-                                <ContentPresenter HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"/>
-                            </Border>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <Button Content="ออก"
+                            Width="34"
+                            Height="20"
+                            Margin="0,0,4,0"
+                            FontSize="10"
+                            Background="#F3F4F6"
+                            Foreground="#6B7280"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="LogoutButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="7">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button Content="—"
+                            Width="26"
+                            Height="20"
+                            FontSize="12"
+                            Background="#F3F4F6"
+                            Foreground="#111827"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            Click="MinimizeButton_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        CornerRadius="7">
+                                    <ContentPresenter HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+                </StackPanel>
             </Grid>
 
             <TextBlock x:Name="RemainingTimeTextBlock"

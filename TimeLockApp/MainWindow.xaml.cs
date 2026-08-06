@@ -5,11 +5,15 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using TimeLockApp.Data;
+using TimeLockApp.Services;
 
 namespace TimeLockApp;
 
 public partial class MainWindow : Window
 {
+    private const string UserWebsiteUrl =
+        "https://libmsu-ai.vercel.app/";
+
     private const int WhKeyboardLl = 13;
     private const int WmKeyDown = 0x0100;
     private const int WmSysKeyDown = 0x0104;
@@ -21,6 +25,10 @@ public partial class MainWindow : Window
     private const int VkRwin = 0x5C;
     private const int VkControl = 0x11;
 
+    private readonly UserSyncService _userSyncService;
+    private readonly ChromeLauncherService _chromeLauncherService = new();
+    private bool _isSynchronizing;
+
     private readonly DatabaseService _databaseService = new();
     private readonly LowLevelKeyboardProc _keyboardProc;
 
@@ -31,6 +39,7 @@ public partial class MainWindow : Window
     private bool _isAlertOpen;
     private bool _isAdminPanelOpen;
     private int _currentSessionId;
+    private int _currentUserId;
     private int _sessionTotalSeconds;
     private bool _sessionEnded;
     private IntPtr _keyboardHook = IntPtr.Zero;
@@ -38,17 +47,22 @@ public partial class MainWindow : Window
     private readonly InternetConnectivityService _connectivityService = new();
     private bool _startupConnectivityChecked;
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public MainWindow()
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
         InitializeComponent();
 
-        _keyboardProc = KeyboardHookCallback;
-        _keyboardHook = InstallKeyboardHook(_keyboardProc);
-
         _databaseService.InitializeDatabase();
 
-        Loaded += MainWindow_Loaded;
+        var googleSheetsUserService =
+            new GoogleSheetsUserService();
 
+        _userSyncService = new UserSyncService(
+            googleSheetsUserService,
+            _databaseService);
+
+        Loaded += MainWindow_Loaded;
 
     }
     private void NetworkAuthButton_Click(
@@ -166,6 +180,7 @@ public partial class MainWindow : Window
 
         if (hasInternet)
         {
+            await SynchronizeUsersSilentlyAsync();
             NetworkStatusTextBlock.Text =
                 "เชื่อมต่ออินเทอร์เน็ตแล้ว";
 
@@ -199,7 +214,10 @@ public partial class MainWindow : Window
 
         Hide();
 
-        AdminWindow adminWindow = new AdminWindow(_databaseService);
+        AdminWindow adminWindow = new(
+            _databaseService,
+            _userSyncService);
+
         adminWindow.ShowDialog();
 
         _isAdminPanelOpen = false;
@@ -247,12 +265,16 @@ public partial class MainWindow : Window
 
         _sessionTotalSeconds = user.AllowedMinutes * 60;
         _remainingSeconds = _sessionTotalSeconds;
+        _currentUserId = user.Id;
 
         _currentSessionId = _databaseService.StartSession(user);
 
         Hide();
 
         _usageWindow = new UsageWindow();
+        _usageWindow.LogoutRequested +=
+            UsageWindow_LogoutRequested;
+
         _usageWindow.UpdateRemainingTime(_remainingSeconds);
         _usageWindow.Show();
 
@@ -260,9 +282,31 @@ public partial class MainWindow : Window
         _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += Timer_Tick;
         _timer.Start();
+
+        ChromeLaunchResult launchResult =
+            _chromeLauncherService.TryOpen(UserWebsiteUrl);
+
+        if (!launchResult.IsSuccessful && _usageWindow != null)
+        {
+            MessageBox.Show(
+                _usageWindow,
+                launchResult.ErrorMessage,
+                "ไม่สามารถเปิดเว็บไซต์ได้",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
-    private void Timer_Tick(object? sender, EventArgs e)
+    private async void UsageWindow_LogoutRequested(
+        object? sender,
+        EventArgs e)
+    {
+        await EndSessionAsync(
+            "logged_out",
+            showExpiredAlert: false);
+    }
+
+    private async void Timer_Tick(object? sender, EventArgs e)
     {
         if (_isAlertOpen)
         {
@@ -283,11 +327,15 @@ public partial class MainWindow : Window
 
         if (_remainingSeconds <= 0)
         {
-            EndSession();
+            await EndSessionAsync(
+                "completed",
+                showExpiredAlert: true);
         }
     }
 
-    private void EndSession()
+    private async Task EndSessionAsync(
+        string status,
+        bool showExpiredAlert)
     {
         if (_sessionEnded)
         {
@@ -306,19 +354,26 @@ public partial class MainWindow : Window
             usedSeconds = 0;
         }
 
-        if (_currentSessionId > 0)
+        if (_currentSessionId > 0 &&
+            _currentUserId > 0)
         {
-            _databaseService.EndSession(
+            _databaseService.EndSessionAndDeactivateUser(
                 _currentSessionId,
+                _currentUserId,
                 usedSeconds,
-                "completed"
-            );
+                status);
         }
+
+        _currentSessionId = 0;
+        _currentUserId = 0;
 
         _isSessionActive = false;
 
         if (_usageWindow != null)
         {
+            _usageWindow.LogoutRequested -=
+                UsageWindow_LogoutRequested;
+
             _usageWindow.Hide();
             _usageWindow = null;
         }
@@ -337,12 +392,17 @@ public partial class MainWindow : Window
         Topmost = false;
         Topmost = true;
 
-        ShowBlockingAlert(
-            "หมดเวลา",
-            "หมดเวลาใช้งานแล้ว กรุณากด OK เพื่อกลับสู่หน้า Login"
-        );
+        if (showExpiredAlert)
+        {
+            ShowBlockingAlert(
+                "หมดเวลา",
+                "หมดเวลาใช้งานแล้ว กรุณากด OK เพื่อกลับสู่หน้า Login"
+            );
+        }
 
         ActivateLoginWindow();
+
+        await _userSyncService.ProcessPendingDeactivationsAsync();
     }
 
     private void ShowBlockingAlert(string title, string message)
@@ -388,6 +448,25 @@ public partial class MainWindow : Window
                 ActivateLoginWindow();
             }), DispatcherPriority.ApplicationIdle);
         }
+    }
+    private async Task OpenNetworkAuthWindowAsync()
+    {
+        var authWindow = new NetworkAuthWindow
+        {
+            Owner = this
+        };
+
+        bool? result = authWindow.ShowDialog();
+
+        if (result != true)
+        {
+            return;
+        }
+
+        Show();
+        Activate();
+
+        await SynchronizeUsersSilentlyAsync();
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -464,4 +543,36 @@ public partial class MainWindow : Window
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string? moduleName);
+
+    //method Sync อัตโนมัติ
+    private async Task SynchronizeUsersSilentlyAsync()
+    {
+        if (_isSynchronizing)
+        {
+            return;
+        }
+
+        _isSynchronizing = true;
+
+        try
+        {
+            UserSyncResult result =
+                await _userSyncService.SynchronizeAsync();
+
+            if (result.IsSuccessful)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"Auto Sync สำเร็จ: {result.UserCount} users");
+
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine(
+                $"Auto Sync ไม่สำเร็จ: {result.ErrorMessage}");
+        }
+        finally
+        {
+            _isSynchronizing = false;
+        }
+    }
 }

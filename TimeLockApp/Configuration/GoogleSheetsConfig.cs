@@ -11,7 +11,7 @@ public static class GoogleSheetsConfig
     public const string WorksheetName = "Users";
 
     public static string ReadRange =>
-        $"{WorksheetName}!A2:G";
+        $"{WorksheetName}!A2:F";
 
     public static string CredentialFilePath =>
         Path.Combine(
