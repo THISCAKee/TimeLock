@@ -37,7 +37,7 @@ public class DatabaseService
             }.ToString();
     }
 
-    public void SynchronizeUsers(
+    public bool SynchronizeUsers(
     IReadOnlyList<GoogleSheetUser> sheetUsers)
     {
         ValidateSheetUsers(sheetUsers);
@@ -52,20 +52,23 @@ public class DatabaseService
 
         try
         {
+            int affectedRows = 0;
+
             foreach (GoogleSheetUser user in sheetUsers)
             {
-                UpsertSheetUser(
+                affectedRows += UpsertSheetUser(
                     connection,
                     transaction,
                     user);
             }
 
-            DeleteMissingSheetUsers(
+            affectedRows += DeleteMissingSheetUsers(
                 connection,
                 transaction,
                 sheetUsers);
 
             transaction.Commit();
+            return affectedRows > 0;
         }
         catch
         {
@@ -706,7 +709,7 @@ public class DatabaseService
         }
     }
     //method Insert/Update user จาก Sheet
-    private static void UpsertSheetUser(
+    private static int UpsertSheetUser(
     SqliteConnection connection,
     SqliteTransaction transaction,
     GoogleSheetUser user)
@@ -743,7 +746,17 @@ public class DatabaseService
                 WHEN users.is_consumed = 1 THEN 0
                 ELSE excluded.is_active
             END
-        WHERE users.is_local_only = 0;
+        WHERE users.is_local_only = 0
+          AND (
+              users.external_user_id IS NOT excluded.external_user_id OR
+              users.password IS NOT excluded.password OR
+              users.allowed_minutes IS NOT excluded.allowed_minutes OR
+              users.role IS NOT excluded.role OR
+              users.is_active IS NOT CASE
+                  WHEN users.is_consumed = 1 THEN 0
+                  ELSE excluded.is_active
+              END
+          );
         """;
 
         using var command = connection.CreateCommand();
@@ -775,10 +788,10 @@ public class DatabaseService
             "$is_active",
             user.IsActive ? 1 : 0);
 
-        command.ExecuteNonQuery();
+        return command.ExecuteNonQuery();
     }
     //method ลบ user ที่หายจาก Sheet
-    private static void DeleteMissingSheetUsers(
+    private static int DeleteMissingSheetUsers(
     SqliteConnection connection,
     SqliteTransaction transaction,
     IReadOnlyList<GoogleSheetUser> sheetUsers)
@@ -794,8 +807,7 @@ public class DatabaseService
             WHERE is_local_only = 0;
             """;
 
-            command.ExecuteNonQuery();
-            return;
+            return command.ExecuteNonQuery();
         }
 
         var parameterNames = new List<string>();
@@ -822,7 +834,7 @@ public class DatabaseService
           AND external_user_id NOT IN ({parameterList});
         """;
 
-        command.ExecuteNonQuery();
+        return command.ExecuteNonQuery();
     }
 
     private static bool ColumnExists(

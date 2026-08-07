@@ -19,6 +19,7 @@ tests = tests
     .Concat(LockAndWarningTests.All())
     .Concat(InterruptedSessionRecoveryTests.All())
     .Concat(SingleInstanceGuardTests.All())
+    .Concat(UserSynchronizationChangeTests.All())
     .ToArray();
 
 int failures = 0;
