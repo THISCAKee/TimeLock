@@ -10,12 +10,12 @@ namespace TimeLockApp.Services;
 
 public sealed class UserSyncService
 {
-    private readonly GoogleSheetsUserService _googleSheetsUserService;
+    private readonly IGoogleSheetsUserService _googleSheetsUserService;
     private readonly DatabaseService _databaseService;
     private readonly SemaphoreSlim _syncGate = new(1, 1);
 
     public UserSyncService(
-        GoogleSheetsUserService googleSheetsUserService,
+        IGoogleSheetsUserService googleSheetsUserService,
         DatabaseService databaseService)
     {
         _googleSheetsUserService = googleSheetsUserService;
@@ -36,9 +36,12 @@ public sealed class UserSyncService
                 await _googleSheetsUserService.GetUsersAsync(
                     cancellationToken);
 
-            _databaseService.SynchronizeUsers(users);
+            bool hasChanges =
+                _databaseService.SynchronizeUsers(users);
 
-            return UserSyncResult.Success(users.Count);
+            return UserSyncResult.Success(
+                users.Count,
+                hasChanges);
         }
         catch (OperationCanceledException)
         {
@@ -120,14 +123,19 @@ public sealed class UserSyncResult
 
     public int UserCount { get; private init; }
 
+    public bool HasChanges { get; private init; }
+
     public string ErrorMessage { get; private init; } = "";
 
-    public static UserSyncResult Success(int userCount)
+    public static UserSyncResult Success(
+        int userCount,
+        bool hasChanges)
     {
         return new UserSyncResult
         {
             IsSuccessful = true,
-            UserCount = userCount
+            UserCount = userCount,
+            HasChanges = hasChanges
         };
     }
 

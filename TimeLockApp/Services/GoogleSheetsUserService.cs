@@ -13,7 +13,7 @@ using TimeLockApp.Models;
 
 namespace TimeLockApp.Services;
 
-public sealed class GoogleSheetsUserService
+public sealed class GoogleSheetsUserService : IGoogleSheetsUserService
 {
     private SheetsService? _sheetsService;
 
