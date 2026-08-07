@@ -54,6 +54,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _databaseService.InitializeDatabase();
+        _databaseService.RecoverInterruptedSessions(DateTime.Now);
 
         var googleSheetsUserService =
             new GoogleSheetsUserService();

@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using TimeLockApp.Models;
@@ -222,6 +223,138 @@ public class DatabaseService
             }
 
             transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    internal int RecoverInterruptedSessions(DateTime recoveryTime)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        using SqliteTransaction transaction =
+            connection.BeginTransaction();
+
+        try
+        {
+            var activeSessions =
+                new List<InterruptedSession>();
+
+            const string selectSql = """
+            SELECT id,
+                   user_id,
+                   start_time,
+                   allowed_minutes
+            FROM sessions
+            WHERE status = 'active';
+            """;
+
+            using (SqliteCommand selectCommand =
+                   connection.CreateCommand())
+            {
+                selectCommand.Transaction = transaction;
+                selectCommand.CommandText = selectSql;
+
+                using SqliteDataReader reader =
+                    selectCommand.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    activeSessions.Add(new InterruptedSession
+                    {
+                        SessionId = reader.GetInt32(0),
+                        UserId = reader.IsDBNull(1)
+                            ? null
+                            : reader.GetInt32(1),
+                        StartTime = DateTime.ParseExact(
+                            reader.GetString(2),
+                            "yyyy-MM-dd HH:mm:ss",
+                            CultureInfo.InvariantCulture),
+                        AllowedMinutes = reader.GetInt32(3)
+                    });
+                }
+            }
+
+            string recoveryTimeText = recoveryTime.ToString(
+                "yyyy-MM-dd HH:mm:ss",
+                CultureInfo.InvariantCulture);
+
+            foreach (InterruptedSession activeSession in activeSessions)
+            {
+                long elapsedSeconds = (long)Math.Floor(
+                    (recoveryTime - activeSession.StartTime)
+                    .TotalSeconds);
+                long maximumSeconds =
+                    (long)activeSession.AllowedMinutes * 60;
+                int usedSeconds = (int)Math.Clamp(
+                    elapsedSeconds,
+                    0L,
+                    maximumSeconds);
+
+                const string updateSessionSql = """
+                UPDATE sessions
+                SET end_time = $end_time,
+                    used_seconds = $used_seconds,
+                    status = 'forced_logout'
+                WHERE id = $session_id
+                  AND status = 'active';
+                """;
+
+                using (SqliteCommand sessionCommand =
+                       connection.CreateCommand())
+                {
+                    sessionCommand.Transaction = transaction;
+                    sessionCommand.CommandText = updateSessionSql;
+                    sessionCommand.Parameters.AddWithValue(
+                        "$end_time",
+                        recoveryTimeText);
+                    sessionCommand.Parameters.AddWithValue(
+                        "$used_seconds",
+                        usedSeconds);
+                    sessionCommand.Parameters.AddWithValue(
+                        "$session_id",
+                        activeSession.SessionId);
+
+                    if (sessionCommand.ExecuteNonQuery() != 1)
+                    {
+                        throw new InvalidOperationException(
+                            "Interrupted session changed during recovery.");
+                    }
+                }
+
+                if (!activeSession.UserId.HasValue)
+                {
+                    continue;
+                }
+
+                const string updateUserSql = """
+                UPDATE users
+                SET is_active = 0,
+                    is_consumed = 1,
+                    deactivation_pending = CASE
+                        WHEN external_user_id IS NULL THEN 0
+                        ELSE 1
+                    END
+                WHERE id = $user_id
+                  AND is_local_only = 0;
+                """;
+
+                using SqliteCommand userCommand =
+                    connection.CreateCommand();
+                userCommand.Transaction = transaction;
+                userCommand.CommandText = updateUserSql;
+                userCommand.Parameters.AddWithValue(
+                    "$user_id",
+                    activeSession.UserId.Value);
+                userCommand.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+            return activeSessions.Count;
         }
         catch
         {
@@ -1089,4 +1222,15 @@ public sealed class PendingUserDeactivation
     public int LocalUserId { get; init; }
 
     public int ExternalUserId { get; init; }
+}
+
+internal sealed class InterruptedSession
+{
+    public int SessionId { get; init; }
+
+    public int? UserId { get; init; }
+
+    public DateTime StartTime { get; init; }
+
+    public int AllowedMinutes { get; init; }
 }
