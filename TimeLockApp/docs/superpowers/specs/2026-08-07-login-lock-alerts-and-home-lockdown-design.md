@@ -15,6 +15,7 @@ The application change will:
 - pause countdown processing while a warning dialog is open and resume after OK;
 - replace the existing 10-second warning;
 - fail closed if the keyboard hook cannot be installed by showing an error and shutting down the application.
+- allow only one TimeLockApp process per Windows session so a manually opened duplicate cannot misclassify the live session as interrupted;
 - recover any session left `active` by a previous process termination as `forced_logout` and deactivate its user before accepting a new login.
 
 The Windows Home deployment change will:
@@ -99,6 +100,8 @@ A small internal schedule component owns the three remaining-time thresholds and
 
 `MainWindow` owns native hook installation/uninstallation, maps its current state into the lock policy, and calls the warning schedule from `Timer_Tick`. Existing login, logout, expiry, Internet Authentication, and alert flows remain the sources of state truth.
 
+Before constructing `MainWindow`, `App` acquires a session-local named mutex. A duplicate process exits without initializing the database or running orphaned-session recovery. The owner releases the mutex during normal application exit.
+
 At startup, immediately after database initialization, `MainWindow` invokes orphaned-session recovery before connectivity synchronization or login interaction. Any pending Google Sheet deactivation then uses the existing synchronization path.
 
 ### Home-lockdown package
@@ -138,6 +141,7 @@ Automated tests will verify:
 14. Removal restores fixture Registry state and targets only the recorded watchdog process in an isolated test hive/process fixture.
 15. Startup recovery closes active sessions as `forced_logout`, preserves already-ended sessions, caps elapsed usage at the allowed duration, and deactivates the referenced user with pending Sheet synchronization.
 16. Recovery rolls back all changes when any session/user update fails.
+17. The single-instance guard rejects a duplicate and makes ownership available after the owner exits.
 
 Manual Windows verification will confirm that the native hook blocks real shell shortcuts on Login, Internet Authentication, and alert dialogs; releases them during a normal session and Admin Panel; pauses the countdown while warnings are open; disables Task Manager for the Standard user; and reopens TimeLockApp after End task while the watchdog remains alive.
 
@@ -149,5 +153,6 @@ Manual Windows verification will confirm that the native hook blocks real shell 
 - A typical three-hour session warns at 30, 10, and 1 minute remaining and pauses for OK each time.
 - Task Manager is unavailable to the configured Standard user and remains available to the separate Administrator.
 - Ending TimeLockApp causes it to reopen within approximately two seconds while the watchdog is running.
+- Opening TimeLockApp again while it is already running exits the duplicate without changing the active session.
 - The restarted app converts the interrupted session to `forced_logout`, disables that user, and displays Login; the same rule applies after a crash, power loss, or reboot.
 - Removal restores the Standard user's previous Task Manager and startup settings.
