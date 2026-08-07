@@ -18,6 +18,7 @@ var tests = new (string Name, Action Run)[]
 tests = tests
     .Concat(LockAndWarningTests.All())
     .Concat(InterruptedSessionRecoveryTests.All())
+    .Concat(SingleInstanceGuardTests.All())
     .ToArray();
 
 int failures = 0;
