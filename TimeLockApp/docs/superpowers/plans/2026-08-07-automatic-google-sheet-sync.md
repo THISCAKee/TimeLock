@@ -31,7 +31,7 @@
 - Consumes: `GoogleSheetUser`, the existing SQLite transaction, and `DatabaseService.GetAllUsers()`.
 - Produces: `public bool DatabaseService.SynchronizeUsers(IReadOnlyList<GoogleSheetUser> sheetUsers)` where `true` means at least one Sheet-owned user was inserted, materially updated, or deleted.
 
-- [ ] **Step 1: Add change-result tests**
+- [x] **Step 1: Add change-result tests**
 
 Create `UserSynchronizationChangeTests.All()` with isolated `TestDatabase` fixtures covering these exact assertions:
 
@@ -54,7 +54,7 @@ AssertTrue(database.GetAllUsers().Any(user => user.IsLocalOnly),
 
 Add the suite to `Program.cs` with `.Concat(UserSynchronizationChangeTests.All())`.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -64,7 +64,7 @@ dotnet run --project TimeLockApp.Tests\TimeLockApp.Tests.csproj --no-restore
 
 Expected: compilation fails because `SynchronizeUsers` returns `void`.
 
-- [ ] **Step 3: Return affected state from the database transaction**
+- [x] **Step 3: Return affected state from the database transaction**
 
 Change the public signature and accumulate affected rows:
 
@@ -103,11 +103,11 @@ WHERE users.is_local_only = 0
 
 For the empty-Sheet deletion branch, return its row count rather than returning `void`.
 
-- [ ] **Step 4: Run GREEN and existing history tests**
+- [x] **Step 4: Run GREEN and existing history tests**
 
 Run the complete C# runner. Expected: all old tests plus the four new change-result tests pass.
 
-- [ ] **Step 5: Commit the database slice**
+- [x] **Step 5: Commit the database slice**
 
 ```powershell
 git add -- data/DatabaseService.cs TimeLockApp.Tests/UserSynchronizationChangeTests.cs TimeLockApp.Tests/Program.cs
@@ -130,7 +130,7 @@ git commit -m "feat: report sheet synchronization changes"
 - Consumes: Task 1's boolean `DatabaseService.SynchronizeUsers` result.
 - Produces: `IGoogleSheetsUserService`, `UserSyncResult.HasChanges`, and serialized `UserSyncService.SynchronizeAsync` behavior.
 
-- [ ] **Step 1: Add failing service-result and serialization tests**
+- [x] **Step 1: Add failing service-result and serialization tests**
 
 Define a test fake implementing the wished-for interface. Its `GetUsersAsync` can return configured users, throw a configured exception, or pause on a `TaskCompletionSource`. Add tests asserting:
 
@@ -148,11 +148,11 @@ For serialization, start two `SynchronizeAsync` calls against a fake that record
 
 For failure, make `GetUsersAsync` throw, assert `IsSuccessful == false`, and assert the fixture's pre-existing local users are unchanged.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run the C# runner. Expected: compilation fails because the interface and `HasChanges` do not exist and the concrete service constructor cannot accept the fake.
 
-- [ ] **Step 3: Introduce the narrow Google Sheet interface**
+- [x] **Step 3: Introduce the narrow Google Sheet interface**
 
 Create:
 
@@ -171,7 +171,7 @@ public interface IGoogleSheetsUserService
 
 Have `GoogleSheetsUserService` implement it and change `UserSyncService`'s field and constructor parameter to the interface. Do not alter Google API request behavior.
 
-- [ ] **Step 4: Propagate change state**
+- [x] **Step 4: Propagate change state**
 
 Add `public bool HasChanges { get; private init; }` to `UserSyncResult`. Change success construction to:
 
@@ -188,7 +188,7 @@ return UserSyncResult.Success(users.Count, hasChanges);
 
 Keep the existing `_syncGate` around pending deactivation, read, and database mutation so every caller is serialized.
 
-- [ ] **Step 5: Run GREEN and commit**
+- [x] **Step 5: Run GREEN and commit**
 
 Run the complete C# runner, then:
 
@@ -211,17 +211,17 @@ git commit -m "feat: expose serialized sheet sync results"
 - Consumes: `Func<CancellationToken, Task<UserSyncResult>>` backed by `UserSyncService.SynchronizeAsync`.
 - Produces: `AutomaticSyncTrigger`, `AutomaticSyncCompletedEventArgs`, `AutomaticSyncOrchestrator.Interval`, `RunAsync` and `Completed`.
 
-- [ ] **Step 1: Write failing trigger and concurrency tests**
+- [x] **Step 1: Write failing trigger and concurrency tests**
 
 Test that `Interval == TimeSpan.FromSeconds(30)`. Invoke every approved enum value—`Startup`, `InternetAuthenticated`, `Periodic`, `SessionExpired`, and `Logout`—and assert the injected synchronization delegate is called and the `Completed` event carries the same trigger and result.
 
 Start two calls with a blocking delegate and assert the second delegate invocation does not start until the first is released. This proves automatic trigger execution is serialized independently of UI timing.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run the C# runner. Expected: compilation fails because `AutomaticSyncOrchestrator` and its trigger types do not exist.
 
-- [ ] **Step 3: Implement the minimal orchestrator**
+- [x] **Step 3: Implement the minimal orchestrator**
 
 Create these types:
 
@@ -269,7 +269,7 @@ internal sealed class AutomaticSyncOrchestrator
 
 Add a constructor that requires the delegate and validates it for null. The orchestrator must not catch or transform cancellation.
 
-- [ ] **Step 4: Run GREEN and commit**
+- [x] **Step 4: Run GREEN and commit**
 
 Run all C# tests, then commit only the orchestrator slice:
 
@@ -294,7 +294,7 @@ git commit -m "feat: coordinate automatic sheet sync triggers"
 - Consumes: Task 2's `UserSyncResult.HasChanges` and Task 3's orchestrator/event types.
 - Produces: one authoritative automatic-sync path in `MainWindow`, visible status formatting, and `AdminWindow.ApplyAutomaticSyncResult(UserSyncResult result, DateTime completedAt)`.
 
-- [ ] **Step 1: Add failing status tests**
+- [x] **Step 1: Add failing status tests**
 
 Test a small pure formatter before touching WPF:
 
@@ -313,11 +313,11 @@ AssertContains(failure, "network unavailable");
 
 Run RED and confirm the missing formatter is the failure.
 
-- [ ] **Step 2: Implement the status formatter and run GREEN**
+- [x] **Step 2: Implement the status formatter and run GREEN**
 
 Create `AutomaticSyncStatus.Format(UserSyncResult result, DateTime completedAt)` using `HH:mm:ss`. Success text includes the time and user count; failure text includes the error and states that the next automatic attempt will retry. Keep all Thai UI copy in this formatter so Login and Admin use identical wording.
 
-- [ ] **Step 3: Add the orchestrator and periodic timer to MainWindow**
+- [x] **Step 3: Add the orchestrator and periodic timer to MainWindow**
 
 Add fields:
 
@@ -332,7 +332,7 @@ After constructing `UserSyncService`, construct the orchestrator from `_userSync
 
 The periodic handler must stop the timer, await `RunAsync(Periodic)`, and restart it in `finally` unless `_isShuttingDown` is true. Start this timer during `MainWindow_Loaded` after the hook is installed. In `OnClosed`, set `_isShuttingDown = true` and stop the automatic timer before unhooking the keyboard callback.
 
-- [ ] **Step 4: Route every approved event through the orchestrator**
+- [x] **Step 4: Route every approved event through the orchestrator**
 
 Replace startup's direct `SynchronizeUsersSilentlyAsync` call with `RunAsync(Startup)`. Remove the unconditional `"เชื่อมต่ออินเทอร์เน็ตแล้ว"` assignment after the call because the completion handler owns the final success or failure status.
 
@@ -350,7 +350,9 @@ await _automaticSync.RunAsync(trigger);
 
 This must occur after the local session/user transaction. Do not terminate an active session in response to any periodic result.
 
-- [ ] **Step 5: Refresh and report to an open Admin Panel**
+Implementation-discovered regression coverage: `UserSynchronizationChangeTests` now verifies that a session can still close as `logged_out` after periodic synchronization removed its Sheet user. `EndSessionAndDeactivateUser` treats an already-missing user row as acceptable while still requiring the session update itself to affect exactly one row.
+
+- [x] **Step 5: Refresh and report to an open Admin Panel**
 
 Store the modal window in `_adminWindow` for its lifetime and clear the field after `ShowDialog` returns.
 
@@ -358,7 +360,7 @@ Implement `AdminWindow.ApplyAutomaticSyncResult`. Always update `MessageTextBloc
 
 In the orchestrator `Completed` handler, format the Login status and forward the result to `_adminWindow`. Since calls originate on the WPF dispatcher, do not add a second dispatcher or background thread.
 
-- [ ] **Step 6: Verify integration and commit**
+- [x] **Step 6: Verify integration and commit**
 
 Run:
 
@@ -387,7 +389,7 @@ git commit -m "feat: sync sheet users on app lifecycle events"
 - Consumes: all prior task deliverables.
 - Produces: verified master commits and a precise manual test handoff.
 
-- [ ] **Step 1: Run fresh automated verification**
+- [x] **Step 1: Run fresh automated verification**
 
 ```powershell
 dotnet run --project TimeLockApp.Tests\TimeLockApp.Tests.csproj --no-restore
@@ -397,7 +399,7 @@ git diff --check -- MainWindow.xaml.cs AdminWindow.xaml.cs Services data TimeLoc
 
 Expected: every C# test reports `PASS`, build exits zero, and scoped diff check is clean. Record any pre-existing dependency warning separately rather than claiming it was introduced or fixed here.
 
-- [ ] **Step 2: Inspect repository scope**
+- [x] **Step 2: Inspect repository scope**
 
 Use `git status --short` and `git show --stat` to confirm no `bin`, `obj`, WebView profile, or `timelock.db` file entered these commits. Preserve all pre-existing generated changes.
 
@@ -412,7 +414,7 @@ With a test Sheet and test account:
 5. Logout and separately allow expiry, confirming Google Sheet deactivation and a subsequent full refresh; and
 6. disconnect the network, confirm a non-modal visible error, reconnect, and confirm the next trigger recovers.
 
-- [ ] **Step 4: Commit final documentation tracking**
+- [x] **Step 4: Commit final documentation tracking**
 
 ```powershell
 git add -- docs/superpowers/specs/2026-08-07-automatic-google-sheet-sync-design.md docs/superpowers/plans/2026-08-07-automatic-google-sheet-sync.md
