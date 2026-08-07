@@ -21,6 +21,7 @@ tests = tests
     .Concat(SingleInstanceGuardTests.All())
     .Concat(UserSynchronizationChangeTests.All())
     .Concat(UserSyncServiceTests.All())
+    .Concat(AutomaticSyncOrchestratorTests.All())
     .ToArray();
 
 int failures = 0;
