@@ -1,3 +1,7 @@
 # Google Service Account credentials
 Secrets/
 service-account*.json
+
+# Test build outputs
+TimeLockApp.Tests/bin/
+TimeLockApp.Tests/obj/

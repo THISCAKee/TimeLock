@@ -31,4 +31,8 @@
   </Content>
 </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="TimeLockApp.Tests\**\*.cs" />
+  </ItemGroup>
+
 </Project>

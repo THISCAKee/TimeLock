@@ -14,9 +14,26 @@ public class DatabaseService
 
 
     public DatabaseService()
+        : this(Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory,
+            "timelock.db"))
     {
-        string dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "timelock.db");
-        _connectionString = $"Data Source={dbPath}";
+    }
+
+    internal DatabaseService(string databasePath)
+    {
+        if (string.IsNullOrWhiteSpace(databasePath))
+        {
+            throw new ArgumentException(
+                "Database path is required.",
+                nameof(databasePath));
+        }
+
+        _connectionString =
+            new SqliteConnectionStringBuilder
+            {
+                DataSource = databasePath
+            }.ToString();
     }
 
     public void SynchronizeUsers(
@@ -295,7 +312,9 @@ public class DatabaseService
             sessions.Add(new SessionRecord
             {
                 Id = reader.GetInt32(0),
-                UserId = reader.GetInt32(1),
+                UserId = reader.IsDBNull(1)
+                    ? null
+                    : reader.GetInt32(1),
                 Username = reader.GetString(2),
                 StartTime = reader.GetString(3),
                 EndTime = reader.IsDBNull(4) ? "" : reader.GetString(4),
@@ -368,7 +387,7 @@ public class DatabaseService
         string createSessionsTableSql = @"
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
+            user_id INTEGER,
             username TEXT NOT NULL,
             start_time TEXT NOT NULL,
             end_time TEXT,
@@ -376,6 +395,7 @@ public class DatabaseService
             used_seconds INTEGER DEFAULT 0,
             status TEXT NOT NULL DEFAULT 'active',
             FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE SET NULL
         );
     ";
 
@@ -383,6 +403,131 @@ public class DatabaseService
         createSessionsCommand.CommandText = createSessionsTableSql;
         createSessionsCommand.ExecuteNonQuery();
 
+        EnsureSessionsSchemaSupportsUserDeletion(connection);
+
+    }
+
+    private static void EnsureSessionsSchemaSupportsUserDeletion(
+        SqliteConnection connection)
+    {
+        if (SessionUserIdIsNullable(connection) &&
+            SessionForeignKeySetsNullOnDelete(connection))
+        {
+            return;
+        }
+
+        using SqliteTransaction transaction =
+            connection.BeginTransaction();
+
+        try
+        {
+            const string sql = """
+            DROP TABLE IF EXISTS sessions_migrated;
+
+            CREATE TABLE sessions_migrated (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT,
+                allowed_minutes INTEGER NOT NULL,
+                used_seconds INTEGER DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'active',
+                FOREIGN KEY (user_id) REFERENCES users(id)
+                    ON DELETE SET NULL
+            );
+
+            INSERT INTO sessions_migrated (
+                id,
+                user_id,
+                username,
+                start_time,
+                end_time,
+                allowed_minutes,
+                used_seconds,
+                status
+            )
+            SELECT id,
+                   user_id,
+                   username,
+                   start_time,
+                   end_time,
+                   allowed_minutes,
+                   used_seconds,
+                   status
+            FROM sessions;
+
+            DROP TABLE sessions;
+            ALTER TABLE sessions_migrated RENAME TO sessions;
+            """;
+
+            using SqliteCommand command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = sql;
+            command.ExecuteNonQuery();
+
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    private static bool SessionUserIdIsNullable(
+        SqliteConnection connection)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "PRAGMA table_info(sessions);";
+
+        using SqliteDataReader reader = command.ExecuteReader();
+
+        while (reader.Read())
+        {
+            if (string.Equals(
+                    reader.GetString(1),
+                    "user_id",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return reader.GetInt32(3) == 0;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "The sessions table does not contain user_id.");
+    }
+
+    private static bool SessionForeignKeySetsNullOnDelete(
+        SqliteConnection connection)
+    {
+        using SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "PRAGMA foreign_key_list(sessions);";
+
+        using SqliteDataReader reader = command.ExecuteReader();
+
+        while (reader.Read())
+        {
+            bool isUserForeignKey =
+                string.Equals(
+                    reader.GetString(2),
+                    "users",
+                    StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(
+                    reader.GetString(3),
+                    "user_id",
+                    StringComparison.OrdinalIgnoreCase);
+
+            if (isUserForeignKey)
+            {
+                return string.Equals(
+                    reader.GetString(6),
+                    "SET NULL",
+                    StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        return false;
     }
     //เพิ่ม validation ป้องกันข้อมูลซ้ำ
     private static void ValidateSheetUsers(
@@ -513,8 +658,7 @@ public class DatabaseService
         {
             command.CommandText = """
             DELETE FROM users
-            WHERE is_local_only = 0
-              AND is_consumed = 0;
+            WHERE is_local_only = 0;
             """;
 
             command.ExecuteNonQuery();
@@ -542,7 +686,6 @@ public class DatabaseService
         command.CommandText = $"""
         DELETE FROM users
         WHERE is_local_only = 0
-          AND is_consumed = 0
           AND external_user_id NOT IN ({parameterList});
         """;
 
@@ -721,7 +864,7 @@ public class DatabaseService
     public class SessionRecord
     {
         public int Id { get; set; }
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public string Username { get; set; } = "";
         public string StartTime { get; set; } = "";
         public string EndTime { get; set; } = "";
