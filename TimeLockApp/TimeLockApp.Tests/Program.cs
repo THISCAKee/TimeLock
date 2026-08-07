@@ -15,6 +15,10 @@ var tests = new (string Name, Action Run)[]
         LegacySessionSchemaMigratesAndPreservesHistory)
 };
 
+tests = tests
+    .Concat(LockAndWarningTests.All())
+    .ToArray();
+
 int failures = 0;
 
 foreach ((string name, Action run) in tests)
