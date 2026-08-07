@@ -39,10 +39,48 @@ public partial class AdminWindow : Window
         LoadUsers();
     }
 
-    private void LoadUsers()
+    private IReadOnlyList<UserRecord> LoadUsers()
     {
+        IReadOnlyList<UserRecord> users =
+            _databaseService.GetAllUsers();
+
         UsersDataGrid.ItemsSource = null;
-        UsersDataGrid.ItemsSource = _databaseService.GetAllUsers();
+        UsersDataGrid.ItemsSource = users;
+
+        return users;
+    }
+
+    internal void ApplyAutomaticSyncResult(
+        UserSyncResult result,
+        DateTime completedAt)
+    {
+        MessageTextBlock.Text =
+            AutomaticSyncStatus.Format(result, completedAt);
+
+        if (!result.IsSuccessful || !result.HasChanges)
+        {
+            return;
+        }
+
+        int? selectedUserId = _selectedUser?.Id;
+        IReadOnlyList<UserRecord> users = LoadUsers();
+
+        if (!selectedUserId.HasValue)
+        {
+            return;
+        }
+
+        UserRecord? selectedUser = users.FirstOrDefault(
+            user => user.Id == selectedUserId.Value);
+
+        if (selectedUser == null)
+        {
+            ClearForm();
+            return;
+        }
+
+        UsersDataGrid.SelectedItem = selectedUser;
+        UsersDataGrid.ScrollIntoView(selectedUser);
     }
 
     private void UsersDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)

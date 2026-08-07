@@ -218,11 +218,7 @@ public class DatabaseService
                     "$user_id",
                     userId);
 
-                if (userCommand.ExecuteNonQuery() != 1)
-                {
-                    throw new InvalidOperationException(
-                        "ไม่สามารถตัดสิทธิ์ผู้ใช้ของ session นี้ได้");
-                }
+                userCommand.ExecuteNonQuery();
             }
 
             transaction.Commit();

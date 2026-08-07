@@ -9,6 +9,7 @@ internal static class UserSynchronizationChangeTests
         yield return ("identical sheet data reports no change", IdenticalDataReportsNoChange);
         yield return ("sheet update reports a material change", UpdateReportsChange);
         yield return ("sheet deletion reports a change and keeps local users", DeletionReportsChangeAndKeepsLocalUsers);
+        yield return ("session can end after its sheet user is removed", SessionCanEndAfterUserRemoval);
     }
 
     private static void InsertReportsChange()
@@ -57,6 +58,33 @@ internal static class UserSynchronizationChangeTests
         AssertTrue(
             fixture.Service.GetAllUsers().Any(user => user.IsLocalOnly),
             "Local-only users must remain.");
+    }
+
+    private static void SessionCanEndAfterUserRemoval()
+    {
+        using var fixture = new TestDatabase();
+        fixture.Service.SynchronizeUsers(
+            new[] { SheetUser(505, "active-then-removed") });
+
+        var user = fixture.Service.GetAllUsers().Single(
+            candidate => candidate.Username == "active-then-removed");
+        int sessionId = fixture.Service.StartSession(user);
+
+        fixture.Service.SynchronizeUsers(Array.Empty<GoogleSheetUser>());
+
+        fixture.Service.EndSessionAndDeactivateUser(
+            sessionId,
+            user.Id,
+            usedSeconds: 30,
+            status: "logged_out");
+
+        DatabaseService.SessionRecord session =
+            fixture.Service.GetAllSessions().Single(
+                candidate => candidate.Id == sessionId);
+
+        AssertTrue(
+            session.Status == "logged_out" && session.UsedSeconds == 30,
+            "The session must close even when its Sheet user was removed.");
     }
 
     private static GoogleSheetUser SheetUser(

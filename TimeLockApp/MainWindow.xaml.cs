@@ -21,8 +21,9 @@ public partial class MainWindow : Window
     private const int VkControl = 0x11;
 
     private readonly UserSyncService _userSyncService;
+    private readonly AutomaticSyncOrchestrator _automaticSync;
+    private readonly DispatcherTimer _automaticSyncTimer;
     private readonly ChromeLauncherService _chromeLauncherService = new();
-    private bool _isSynchronizing;
 
     private readonly DatabaseService _databaseService = new();
     private readonly LowLevelKeyboardProc _keyboardProc;
@@ -41,6 +42,8 @@ public partial class MainWindow : Window
     private bool _isNetworkAuthOpen;
     private readonly InternetConnectivityService _connectivityService = new();
     private bool _startupConnectivityChecked;
+    private AdminWindow? _adminWindow;
+    private bool _isShuttingDown;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public MainWindow()
@@ -60,16 +63,26 @@ public partial class MainWindow : Window
             googleSheetsUserService,
             _databaseService);
 
+        _automaticSync = new AutomaticSyncOrchestrator(
+            _userSyncService.SynchronizeAsync);
+        _automaticSync.Completed += AutomaticSync_Completed;
+
+        _automaticSyncTimer = new DispatcherTimer
+        {
+            Interval = AutomaticSyncOrchestrator.Interval
+        };
+        _automaticSyncTimer.Tick += AutomaticSyncTimer_Tick;
+
         Loaded += MainWindow_Loaded;
 
     }
-    private void NetworkAuthButton_Click(
+    private async void NetworkAuthButton_Click(
      object sender,
      RoutedEventArgs e)
     {
-        OpenNetworkAuthentication();
+        await OpenNetworkAuthenticationAsync();
     }
-    private void OpenNetworkAuthentication()
+    private async Task OpenNetworkAuthenticationAsync()
     {
         if (_isNetworkAuthOpen)
         {
@@ -96,7 +109,10 @@ public partial class MainWindow : Window
                 networkAuthWindow.AuthenticationCompleted)
             {
                 NetworkStatusTextBlock.Text =
-                    "เชื่อมต่ออินเทอร์เน็ตสำเร็จ สามารถเข้าสู่ระบบได้";
+                    "เชื่อมต่ออินเทอร์เน็ตสำเร็จ กำลังซิงค์ข้อมูล...";
+
+                await _automaticSync.RunAsync(
+                    AutomaticSyncTrigger.InternetAuthenticated);
             }
             else
             {
@@ -173,6 +189,8 @@ public partial class MainWindow : Window
             return;
         }
 
+        _automaticSyncTimer.Start();
+
         if (_startupConnectivityChecked)
         {
             return;
@@ -188,9 +206,8 @@ public partial class MainWindow : Window
 
         if (hasInternet)
         {
-            await SynchronizeUsersSilentlyAsync();
-            NetworkStatusTextBlock.Text =
-                "เชื่อมต่ออินเทอร์เน็ตแล้ว";
+            await _automaticSync.RunAsync(
+                AutomaticSyncTrigger.Startup);
 
             UsernameTextBox.Focus();
             return;
@@ -199,7 +216,7 @@ public partial class MainWindow : Window
         NetworkStatusTextBlock.Text =
             "ยังไม่ได้ Authen Internet";
 
-        OpenNetworkAuthentication();
+        await OpenNetworkAuthenticationAsync();
     }
 
     private bool EnsureKeyboardHookInstalled()
@@ -252,7 +269,16 @@ public partial class MainWindow : Window
             _databaseService,
             _userSyncService);
 
-        adminWindow.ShowDialog();
+        _adminWindow = adminWindow;
+
+        try
+        {
+            adminWindow.ShowDialog();
+        }
+        finally
+        {
+            _adminWindow = null;
+        }
 
         _isAdminPanelOpen = false;
 
@@ -442,7 +468,12 @@ public partial class MainWindow : Window
 
         ActivateLoginWindow();
 
-        await _userSyncService.ProcessPendingDeactivationsAsync();
+        AutomaticSyncTrigger syncTrigger =
+            status == "logged_out"
+                ? AutomaticSyncTrigger.Logout
+                : AutomaticSyncTrigger.SessionExpired;
+
+        await _automaticSync.RunAsync(syncTrigger);
     }
 
     private void ShowBlockingAlert(string title, string message)
@@ -489,26 +520,6 @@ public partial class MainWindow : Window
             }), DispatcherPriority.ApplicationIdle);
         }
     }
-    private async Task OpenNetworkAuthWindowAsync()
-    {
-        var authWindow = new NetworkAuthWindow
-        {
-            Owner = this
-        };
-
-        bool? result = authWindow.ShowDialog();
-
-        if (result != true)
-        {
-            return;
-        }
-
-        Show();
-        Activate();
-
-        await SynchronizeUsersSilentlyAsync();
-    }
-
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         // กัน Alt+F4
@@ -539,6 +550,10 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _isShuttingDown = true;
+        _automaticSyncTimer.Stop();
+        _automaticSync.Completed -= AutomaticSync_Completed;
+
         if (_keyboardHook != IntPtr.Zero)
         {
             UnhookWindowsHookEx(_keyboardHook);
@@ -584,35 +599,41 @@ public partial class MainWindow : Window
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern IntPtr GetModuleHandle(string? moduleName);
 
-    //method Sync อัตโนมัติ
-    private async Task SynchronizeUsersSilentlyAsync()
+    private async void AutomaticSyncTimer_Tick(
+        object? sender,
+        EventArgs e)
     {
-        if (_isSynchronizing)
-        {
-            return;
-        }
-
-        _isSynchronizing = true;
+        _automaticSyncTimer.Stop();
 
         try
         {
-            UserSyncResult result =
-                await _userSyncService.SynchronizeAsync();
-
-            if (result.IsSuccessful)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"Auto Sync สำเร็จ: {result.UserCount} users");
-
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine(
-                $"Auto Sync ไม่สำเร็จ: {result.ErrorMessage}");
+            await _automaticSync.RunAsync(
+                AutomaticSyncTrigger.Periodic);
         }
         finally
         {
-            _isSynchronizing = false;
+            if (!_isShuttingDown)
+            {
+                _automaticSyncTimer.Start();
+            }
         }
+    }
+
+    private void AutomaticSync_Completed(
+        object? sender,
+        AutomaticSyncCompletedEventArgs e)
+    {
+        DateTime completedAt = DateTime.Now;
+        string status = AutomaticSyncStatus.Format(
+            e.Result,
+            completedAt);
+
+        NetworkStatusTextBlock.Text = status;
+        _adminWindow?.ApplyAutomaticSyncResult(
+            e.Result,
+            completedAt);
+
+        Debug.WriteLine(
+            $"Automatic sync ({e.Trigger}): {status}");
     }
 }

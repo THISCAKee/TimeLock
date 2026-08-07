@@ -22,6 +22,7 @@ tests = tests
     .Concat(UserSynchronizationChangeTests.All())
     .Concat(UserSyncServiceTests.All())
     .Concat(AutomaticSyncOrchestratorTests.All())
+    .Concat(AutomaticSyncStatusTests.All())
     .ToArray();
 
 int failures = 0;
