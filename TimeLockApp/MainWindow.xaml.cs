@@ -18,11 +18,6 @@ public partial class MainWindow : Window
     private const int WmKeyDown = 0x0100;
     private const int WmSysKeyDown = 0x0104;
     private const int LlkhfAltDown = 0x20;
-    private const int VkTab = 0x09;
-    private const int VkEscape = 0x1B;
-    private const int VkF4 = 0x73;
-    private const int VkLwin = 0x5B;
-    private const int VkRwin = 0x5C;
     private const int VkControl = 0x11;
 
     private readonly UserSyncService _userSyncService;
@@ -52,6 +47,8 @@ public partial class MainWindow : Window
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
         InitializeComponent();
+
+        _keyboardProc = KeyboardHookCallback;
 
         _databaseService.InitializeDatabase();
         _databaseService.RecoverInterruptedSessions(DateTime.Now);
@@ -126,8 +123,6 @@ public partial class MainWindow : Window
             UsernameTextBox.Focus();
         }
     }
-    private bool IsLoginLocked => !_isSessionActive && !_isAdminPanelOpen;
-
     private static IntPtr InstallKeyboardHook(LowLevelKeyboardProc keyboardProc)
     {
         using Process currentProcess = Process.GetCurrentProcess();
@@ -140,21 +135,28 @@ public partial class MainWindow : Window
     private IntPtr KeyboardHookCallback(int code, IntPtr wParam, IntPtr lParam)
     {
         if (code >= 0 &&
-            IsLoginLocked &&
-            (wParam == (IntPtr)WmKeyDown || wParam == (IntPtr)WmSysKeyDown))
+            (wParam == (IntPtr)WmKeyDown ||
+             wParam == (IntPtr)WmSysKeyDown))
         {
             KeyboardHookData keyboardData = Marshal.PtrToStructure<KeyboardHookData>(lParam);
             int virtualKey = unchecked((int)keyboardData.VirtualKeyCode);
             bool altPressed = (keyboardData.Flags & LlkhfAltDown) != 0;
             bool controlPressed = (GetAsyncKeyState(VkControl) & 0x8000) != 0;
 
-            bool isBlockedShortcut =
-                virtualKey == VkLwin ||
-                virtualKey == VkRwin ||
-                (altPressed && (virtualKey == VkTab || virtualKey == VkEscape || virtualKey == VkF4)) ||
-                (controlPressed && virtualKey == VkEscape);
+            bool shouldBlock =
+                SystemShortcutPolicy.ShouldBlock(
+                    _isSessionActive,
+                    _isAdminPanelOpen,
+                    _isNetworkAuthOpen,
+                    _isAlertOpen);
 
-            if (isBlockedShortcut)
+            bool isBlockedShortcut =
+                SystemShortcutPolicy.IsBlockedShortcut(
+                    virtualKey,
+                    altPressed,
+                    controlPressed);
+
+            if (shouldBlock && isBlockedShortcut)
             {
                 return (IntPtr)1;
             }
@@ -166,6 +168,11 @@ public partial class MainWindow : Window
     object sender,
     RoutedEventArgs e)
     {
+        if (!EnsureKeyboardHookInstalled())
+        {
+            return;
+        }
+
         if (_startupConnectivityChecked)
         {
             return;
@@ -193,6 +200,32 @@ public partial class MainWindow : Window
             "ยังไม่ได้ Authen Internet";
 
         OpenNetworkAuthentication();
+    }
+
+    private bool EnsureKeyboardHookInstalled()
+    {
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            return true;
+        }
+
+        _keyboardHook = InstallKeyboardHook(_keyboardProc);
+
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            return true;
+        }
+
+        int errorCode = Marshal.GetLastWin32Error();
+
+        MessageBox.Show(
+            $"ไม่สามารถเปิดระบบล็อกแป้นพิมพ์ได้ (Win32: {errorCode})",
+            "เริ่มระบบล็อกไม่สำเร็จ",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+
+        Application.Current.Shutdown(-1);
+        return false;
     }
     private void UsernameTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
@@ -314,15 +347,21 @@ public partial class MainWindow : Window
             return;
         }
 
+        int previousSeconds = _remainingSeconds;
         _remainingSeconds--;
 
         _usageWindow?.UpdateRemainingTime(_remainingSeconds);
 
-        if (_remainingSeconds == 10)
+        SessionWarning? warning =
+            SessionWarningSchedule.GetCrossedWarning(
+                previousSeconds,
+                _remainingSeconds);
+
+        if (warning != null)
         {
             ShowBlockingAlert(
                 "แจ้งเตือน",
-                "เหลือเวลาใช้งานอีก 10 วินาที"
+                warning.Message
             );
         }
 
