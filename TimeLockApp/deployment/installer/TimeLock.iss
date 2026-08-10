@@ -39,5 +39,21 @@ Name: "{group}\TimeLock"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{group}\Uninstall TimeLock"; Filename: "{uninstallexe}"
 
+[Dirs]
+Name: "{app}\Secrets"
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    MsgBox(
+      'Installation completed.' + #13#10 + #13#10 +
+      'To enable Google Sheets sync, copy service-account.json to:' + #13#10 +
+      ExpandConstant('{app}\Secrets\service-account.json') + #13#10 + #13#10 +
+      'Then make sure the service account has Editor access to the Google Sheet and restart TimeLock.',
+      mbInformation,
+      MB_OK);
+end;
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}"

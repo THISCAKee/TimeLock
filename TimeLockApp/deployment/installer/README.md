@@ -33,7 +33,13 @@ The publish and output folders are owned by the build script and are recreated o
 
 ## Credentials
 
-`Secrets\service-account.json` is intentionally not included in the installer. Provision it separately after installation at the path expected by the application before using Google Sheets synchronization. Do not commit or distribute this credential through the installer artifact.
+`Secrets\service-account.json` is intentionally not included in the installer. The installer creates the `Secrets` folder for you. Copy the credential separately after installation to:
+
+```text
+C:\Program Files\TimeLock\Secrets\service-account.json
+```
+
+You may need Administrator permission to copy the file. The service-account email inside the JSON must have Editor access to the configured Google Sheet. Do not commit or distribute this credential through the installer artifact.
 
 ## Installation
 
