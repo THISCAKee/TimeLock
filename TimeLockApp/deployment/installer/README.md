@@ -43,6 +43,6 @@ You may need Administrator permission to copy the file. The service-account emai
 
 ## Installation
 
-Run `TimeLock-Setup.exe` as an administrator. The installer places the application in `Program Files\TimeLock`, creates a Start Menu shortcut, enables automatic startup after Windows sign-in by default, and offers an optional Desktop shortcut. Windows Apps & Features can be used to uninstall it.
+Run `TimeLock-Setup.exe` as an administrator. The installer places the application in `Program Files\TimeLock`, creates a Start Menu shortcut, enables automatic startup after Windows sign-in by default, and offers an optional Desktop shortcut. Windows does not expose an uninstall entry; an authenticated administrator must use Admin Panel → Uninstall Program.
 
 The automatic startup option creates a shared Windows Startup shortcut, so TimeLock starts for users who sign in to the machine. It can be unchecked during installation if needed.
