@@ -152,8 +152,9 @@ public sealed class GoogleSheetsUserService : IGoogleSheetsUserService
             File.OpenRead(credentialPath);
 
         GoogleCredential credential =
-            GoogleCredential
-                .FromStream(stream)
+            CredentialFactory
+                .FromStream<ServiceAccountCredential>(stream)
+                .ToGoogleCredential()
                 .CreateScoped(
                     SheetsService.Scope.Spreadsheets);
 
