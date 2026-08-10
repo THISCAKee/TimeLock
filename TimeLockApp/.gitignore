@@ -13,3 +13,7 @@ TimeLockApp.AdminWeb/appsettings.Development.json
 admin-web-next/node_modules/
 admin-web-next/.next/
 admin-web-next/.env.local
+
+# Installer build output
+deployment/installer/publish/
+deployment/installer/output/
