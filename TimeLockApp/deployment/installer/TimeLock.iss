@@ -18,6 +18,8 @@ DisableProgramGroupPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
+Uninstallable=yes
+CreateUninstallRegKey=no
 OutputDir=output
 OutputBaseFilename=TimeLock-Setup
 Compression=lzma2
@@ -39,7 +41,6 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 Name: "{group}\TimeLock"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{commonstartup}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
-Name: "{group}\Uninstall TimeLock"; Filename: "{uninstallexe}"
 
 [Dirs]
 Name: "{app}\Secrets"
