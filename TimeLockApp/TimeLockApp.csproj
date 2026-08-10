@@ -32,7 +32,9 @@
 </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="TimeLockApp.Tests\**\*.cs" />
-  </ItemGroup>
+  <Compile Remove="TimeLockApp.Tests\**\*.cs" />
+  <Compile Remove="TimeLockApp.AdminWeb\**\*.cs" />
+  <None Remove="TimeLockApp.AdminWeb\**\*" />
+</ItemGroup>
 
 </Project>

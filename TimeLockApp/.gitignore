@@ -5,3 +5,11 @@ service-account*.json
 # Test build outputs
 TimeLockApp.Tests/bin/
 TimeLockApp.Tests/obj/
+
+# Admin web build outputs and local secrets
+TimeLockApp.AdminWeb/bin/
+TimeLockApp.AdminWeb/obj/
+TimeLockApp.AdminWeb/appsettings.Development.json
+admin-web-next/node_modules/
+admin-web-next/.next/
+admin-web-next/.env.local
