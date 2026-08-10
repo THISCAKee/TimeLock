@@ -30,6 +30,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "startupicon"; Description: "Start TimeLock automatically when signing in to Windows"; GroupDescription: "Additional startup options:"; Flags: checkedonce
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -37,6 +38,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 [Icons]
 Name: "{group}\TimeLock"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{commonstartup}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 Name: "{group}\Uninstall TimeLock"; Filename: "{uninstallexe}"
 
 [Dirs]
