@@ -144,7 +144,7 @@ public sealed class GoogleSheetsUserService : IGoogleSheetsUserService
         if (!File.Exists(credentialPath))
         {
             throw new FileNotFoundException(
-                "ไม่พบไฟล์ Service Account",
+                LanguageService.Default.Get("ServiceAccountNotFound"),
                 credentialPath);
         }
 

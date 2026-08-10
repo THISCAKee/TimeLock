@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using TimeLockApp.Models;
+using TimeLockApp.Services;
 
 namespace TimeLockApp.Data;
 
@@ -193,7 +194,7 @@ public class DatabaseService
                 if (sessionCommand.ExecuteNonQuery() != 1)
                 {
                     throw new InvalidOperationException(
-                        "ไม่พบ session ที่ต้องการสิ้นสุด");
+                        LanguageService.Default.Get("SessionNotFound"));
                 }
             }
 
@@ -688,7 +689,7 @@ public class DatabaseService
         if (!string.IsNullOrWhiteSpace(duplicateUsername))
         {
             throw new InvalidOperationException(
-                $"พบ Username ซ้ำใน Google Sheet: {duplicateUsername}");
+                LanguageService.Default.Get("DuplicateSheetUsername", duplicateUsername));
         }
 
         GoogleSheetUser? adminUser = users
@@ -701,7 +702,7 @@ public class DatabaseService
         if (adminUser != null)
         {
             throw new InvalidOperationException(
-                "ไม่ต้องเพิ่ม admin ลง Google Sheet เพราะ admin ถูกเก็บในเครื่องอยู่แล้ว");
+                LanguageService.Default.Get("AdminInSheet"));
         }
     }
     //method Insert/Update user จาก Sheet

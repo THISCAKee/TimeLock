@@ -8,11 +8,24 @@ namespace TimeLockApp;
 
 public partial class AdminWindow : Window
 {
+    public static readonly DependencyProperty IsPasswordVisibleProperty =
+        DependencyProperty.Register(
+            nameof(IsPasswordVisible),
+            typeof(bool),
+            typeof(AdminWindow),
+            new PropertyMetadata(false));
+
     private readonly DatabaseService _databaseService;
     private UserRecord? _selectedUser;
     private readonly UserSyncService _userSyncService;
 
     public bool BackToLoginRequested { get; private set; }
+
+    public bool IsPasswordVisible
+    {
+        get => (bool)GetValue(IsPasswordVisibleProperty);
+        set => SetValue(IsPasswordVisibleProperty, value);
+    }
 
     public AdminWindow(
         DatabaseService databaseService,
@@ -100,6 +113,15 @@ public partial class AdminWindow : Window
         MessageTextBlock.Text = "";
     }
 
+    private void PasswordVisibilityButton_Click(object sender, RoutedEventArgs e)
+    {
+        IsPasswordVisible = !IsPasswordVisible;
+        PasswordVisibilityButton.Content =
+            IsPasswordVisible
+                ? App.Language.Get("Hide")
+                : App.Language.Get("Show");
+    }
+
     private void AddButton_Click(object sender, RoutedEventArgs e)
     {
         if (!TryReadForm(out string username, out string password, out int allowedMinutes, out string role))
@@ -111,11 +133,11 @@ public partial class AdminWindow : Window
 
         if (!success)
         {
-            MessageTextBlock.Text = "เพิ่ม user ไม่สำเร็จ อาจมี username นี้อยู่แล้ว";
+            MessageTextBlock.Text = App.Language.Get("AddFailed");
             return;
         }
 
-        MessageTextBlock.Text = "เพิ่ม user สำเร็จ";
+        MessageTextBlock.Text = App.Language.Get("AddSuccess");
         ClearForm();
         LoadUsers();
     }
@@ -124,7 +146,7 @@ public partial class AdminWindow : Window
     {
         if (_selectedUser == null)
         {
-            MessageTextBlock.Text = "กรุณาเลือก user ที่ต้องการแก้ไข";
+            MessageTextBlock.Text = App.Language.Get("SelectEditUser");
             return;
         }
 
@@ -143,11 +165,11 @@ public partial class AdminWindow : Window
 
         if (!success)
         {
-            MessageTextBlock.Text = "แก้ไข user ไม่สำเร็จ";
+            MessageTextBlock.Text = App.Language.Get("EditFailed");
             return;
         }
 
-        MessageTextBlock.Text = "แก้ไข user สำเร็จ";
+        MessageTextBlock.Text = App.Language.Get("EditSuccess");
         ClearForm();
         LoadUsers();
     }
@@ -156,19 +178,19 @@ public partial class AdminWindow : Window
     {
         if (_selectedUser == null)
         {
-            MessageTextBlock.Text = "กรุณาเลือก user ที่ต้องการลบ";
+            MessageTextBlock.Text = App.Language.Get("SelectDeleteUser");
             return;
         }
 
         if (_selectedUser.Role == "admin")
         {
-            MessageTextBlock.Text = "ไม่แนะนำให้ลบ admin ผ่านหน้านี้";
+            MessageTextBlock.Text = App.Language.Get("DeleteAdminWarning");
             return;
         }
 
         MessageBoxResult result = MessageBox.Show(
-            $"ต้องการลบ user '{_selectedUser.Username}' ใช่หรือไม่?",
-            "ยืนยันการลบ",
+            App.Language.Get("DeleteConfirm", _selectedUser.Username),
+            App.Language.Get("DeleteConfirmTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning
         );
@@ -182,11 +204,11 @@ public partial class AdminWindow : Window
 
         if (!success)
         {
-            MessageTextBlock.Text = "ลบ user ไม่สำเร็จ";
+            MessageTextBlock.Text = App.Language.Get("DeleteFailed");
             return;
         }
 
-        MessageTextBlock.Text = "ลบ user สำเร็จ";
+        MessageTextBlock.Text = App.Language.Get("DeleteSuccess");
         ClearForm();
         LoadUsers();
     }
@@ -222,31 +244,31 @@ public partial class AdminWindow : Window
 
         if (string.IsNullOrWhiteSpace(username))
         {
-            MessageTextBlock.Text = "กรุณากรอก username";
+            MessageTextBlock.Text = App.Language.Get("EnterUsername");
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(password))
         {
-            MessageTextBlock.Text = "กรุณากรอก password";
+            MessageTextBlock.Text = App.Language.Get("EnterPassword");
             return false;
         }
 
         if (!int.TryParse(AllowedMinutesTextBox.Text.Trim(), out allowedMinutes))
         {
-            MessageTextBlock.Text = "Allowed Minutes ต้องเป็นตัวเลข";
+            MessageTextBlock.Text = App.Language.Get("MinutesNumber");
             return false;
         }
 
         if (allowedMinutes < 0)
         {
-            MessageTextBlock.Text = "Allowed Minutes ต้องไม่ติดลบ";
+            MessageTextBlock.Text = App.Language.Get("MinutesNonNegative");
             return false;
         }
 
         if (role == "user" && allowedMinutes <= 0)
         {
-            MessageTextBlock.Text = "user ปกติต้องมีเวลามากกว่า 0 นาที";
+            MessageTextBlock.Text = App.Language.Get("MinutesPositive");
             return false;
         }
 
@@ -257,8 +279,7 @@ public partial class AdminWindow : Window
      object sender,
      RoutedEventArgs e)
     {
-        MessageTextBlock.Text =
-            "กำลังซิงก์ข้อมูลผู้ใช้...";
+        MessageTextBlock.Text = App.Language.Get("SyncingUsers");
 
         SyncUsersButton.IsEnabled = false;
 
@@ -270,7 +291,7 @@ public partial class AdminWindow : Window
             if (!result.IsSuccessful)
             {
                 MessageTextBlock.Text =
-                    $"ซิงก์ไม่สำเร็จ: {result.ErrorMessage}";
+                    App.Language.Get("SyncFailed", result.ErrorMessage);
 
                 return;
             }
@@ -278,7 +299,7 @@ public partial class AdminWindow : Window
             LoadUsers();
 
             MessageTextBlock.Text =
-                $"ซิงก์สำเร็จ {result.UserCount} รายการ";
+                App.Language.Get("SyncSuccess", result.UserCount);
         }
         finally
         {

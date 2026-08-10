@@ -11,8 +11,8 @@ public partial class SessionHistoryWindow : Window
     private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
     {
         MessageBoxResult result = MessageBox.Show(
-            "ต้องการล้างประวัติการใช้งานทั้งหมดใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้",
-            "ยืนยันการล้างประวัติ",
+            App.Language.Get("ClearHistoryConfirm"),
+            App.Language.Get("ClearHistoryConfirmTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning
         );
@@ -26,8 +26,8 @@ public partial class SessionHistoryWindow : Window
         LoadSessions();
 
         MessageBox.Show(
-            "ล้างประวัติการใช้งานเรียบร้อยแล้ว",
-            "สำเร็จ",
+            App.Language.Get("HistoryCleared"),
+            App.Language.Get("Success"),
             MessageBoxButton.OK,
             MessageBoxImage.Information
         );

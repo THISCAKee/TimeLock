@@ -29,7 +29,7 @@ public sealed class ChromeLauncherService
             uri.Scheme != Uri.UriSchemeHttps)
         {
             return ChromeLaunchResult.Failure(
-                "URL เว็บไซต์ไม่ถูกต้อง");
+                LanguageService.Default.Get("InvalidWebsiteUrl"));
         }
 
         string? chromePath = FindChromePath();
@@ -37,7 +37,7 @@ public sealed class ChromeLauncherService
         if (chromePath == null)
         {
             return ChromeLaunchResult.Failure(
-                "ไม่พบ Google Chrome ในเครื่องนี้");
+                LanguageService.Default.Get("ChromeNotFound"));
         }
 
         try
@@ -55,13 +55,13 @@ public sealed class ChromeLauncherService
 
             return process == null
                 ? ChromeLaunchResult.Failure(
-                    "ไม่สามารถเปิด Google Chrome ได้")
+                    LanguageService.Default.Get("ChromeOpenFailed"))
                 : ChromeLaunchResult.Success();
         }
         catch (Exception)
         {
             return ChromeLaunchResult.Failure(
-                "ไม่สามารถเปิด Google Chrome ได้");
+                LanguageService.Default.Get("ChromeOpenFailed"));
         }
     }
 

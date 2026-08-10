@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using TimeLockApp.Data;
@@ -82,6 +83,28 @@ public partial class MainWindow : Window
     {
         await OpenNetworkAuthenticationAsync();
     }
+
+    private void ThaiLanguageButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        SetLanguage("th");
+    }
+
+    private void EnglishLanguageButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        SetLanguage("en");
+    }
+
+    private void SetLanguage(string language)
+    {
+        bool isEnglish = language == "en";
+        ThaiLanguageButton.IsChecked = !isEnglish;
+        EnglishLanguageButton.IsChecked = isEnglish;
+        App.Language.SetLanguage(language);
+    }
     private async Task OpenNetworkAuthenticationAsync()
     {
         if (_isNetworkAuthOpen)
@@ -92,8 +115,7 @@ public partial class MainWindow : Window
         _isNetworkAuthOpen = true;
         NetworkAuthButton.IsEnabled = false;
 
-        NetworkStatusTextBlock.Text =
-            "กำลังเปิดระบบ Authen Internet...";
+        NetworkStatusTextBlock.Text = App.Language.Get("OpeningAuth");
 
         Topmost = false;
         Hide();
@@ -109,21 +131,19 @@ public partial class MainWindow : Window
                 networkAuthWindow.AuthenticationCompleted)
             {
                 NetworkStatusTextBlock.Text =
-                    "เชื่อมต่ออินเทอร์เน็ตสำเร็จ กำลังซิงค์ข้อมูล...";
+                    App.Language.Get("InternetConnectedSyncing");
 
                 await _automaticSync.RunAsync(
                     AutomaticSyncTrigger.InternetAuthenticated);
             }
             else
             {
-                NetworkStatusTextBlock.Text =
-                    "ยกเลิก Authen กรุณาเชื่อมต่ออีกครั้งเมื่อต้องการใช้อินเทอร์เน็ต";
+                NetworkStatusTextBlock.Text = App.Language.Get("AuthCancelled");
             }
         }
         catch (Exception ex)
         {
-            NetworkStatusTextBlock.Text =
-                $"ไม่สามารถเปิดระบบ Authen ได้: {ex.Message}";
+            NetworkStatusTextBlock.Text = App.Language.Get("OpenAuthFailed", ex.Message);
         }
         finally
         {
@@ -198,8 +218,7 @@ public partial class MainWindow : Window
 
         _startupConnectivityChecked = true;
 
-        NetworkStatusTextBlock.Text =
-            "กำลังตรวจสอบการเชื่อมต่ออินเทอร์เน็ต...";
+        NetworkStatusTextBlock.Text = App.Language.Get("CheckingInternet");
 
         bool hasInternet =
             await _connectivityService.HasInternetAccessAsync();
@@ -213,8 +232,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        NetworkStatusTextBlock.Text =
-            "ยังไม่ได้ Authen Internet";
+        NetworkStatusTextBlock.Text = App.Language.Get("NoInternetAuth");
 
         await OpenNetworkAuthenticationAsync();
     }
@@ -236,8 +254,8 @@ public partial class MainWindow : Window
         int errorCode = Marshal.GetLastWin32Error();
 
         MessageBox.Show(
-            $"ไม่สามารถเปิดระบบล็อกแป้นพิมพ์ได้ (Win32: {errorCode})",
-            "เริ่มระบบล็อกไม่สำเร็จ",
+            App.Language.Get("KeyboardLockFailed", errorCode),
+            App.Language.Get("KeyboardLockFailedTitle"),
             MessageBoxButton.OK,
             MessageBoxImage.Error);
 
@@ -305,7 +323,7 @@ public partial class MainWindow : Window
 
         if (user == null)
         {
-            MessageTextBlock.Text = "Username หรือ Password ไม่ถูกต้อง";
+            MessageTextBlock.Text = App.Language.Get("InvalidCredentials");
             return;
         }
 
@@ -351,7 +369,7 @@ public partial class MainWindow : Window
             MessageBox.Show(
                 _usageWindow,
                 launchResult.ErrorMessage,
-                "ไม่สามารถเปิดเว็บไซต์ได้",
+                App.Language.Get("WebsiteOpenFailedTitle"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
@@ -386,7 +404,7 @@ public partial class MainWindow : Window
         if (warning != null)
         {
             ShowBlockingAlert(
-                "แจ้งเตือน",
+                App.Language.Get("AlertTitle"),
                 warning.Message
             );
         }
@@ -461,8 +479,8 @@ public partial class MainWindow : Window
         if (showExpiredAlert)
         {
             ShowBlockingAlert(
-                "หมดเวลา",
-                "หมดเวลาใช้งานแล้ว กรุณากด OK เพื่อกลับสู่หน้า Login"
+                App.Language.Get("TimeExpiredTitle"),
+                App.Language.Get("TimeExpiredMessage")
             );
         }
 

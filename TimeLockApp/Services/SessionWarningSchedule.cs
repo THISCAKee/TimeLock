@@ -6,11 +6,11 @@ internal sealed record SessionWarning(
 
 internal static class SessionWarningSchedule
 {
-    private static readonly SessionWarning[] Warnings =
+    private static readonly (int RemainingSeconds, string MessageKey)[] Warnings =
     {
-        new(1800, "เหลือเวลาใช้งานอีก 30 นาที"),
-        new(600, "เหลือเวลาใช้งานอีก 10 นาที"),
-        new(60, "เหลือเวลาใช้งานอีก 1 นาที")
+        (1800, "Warning30Minutes"),
+        (600, "Warning10Minutes"),
+        (60, "Warning1Minute")
     };
 
     internal static SessionWarning? GetCrossedWarning(
@@ -22,8 +22,14 @@ internal static class SessionWarningSchedule
             return null;
         }
 
-        return Warnings.FirstOrDefault(warning =>
+        (int RemainingSeconds, string MessageKey) crossedWarning = Warnings.FirstOrDefault(warning =>
             previousSeconds > warning.RemainingSeconds &&
             currentSeconds <= warning.RemainingSeconds);
+
+        return crossedWarning.MessageKey != null
+            ? new SessionWarning(
+                crossedWarning.RemainingSeconds,
+                LanguageService.Default.Get(crossedWarning.MessageKey))
+            : null;
     }
 }

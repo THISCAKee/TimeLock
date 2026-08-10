@@ -1,7 +1,7 @@
 <Window x:Class="TimeLockApp.AdminWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Admin Panel"
+        Title="{DynamicResource AdminPanel}"
         Width="1080"
         Height="680"
         MinWidth="980"
@@ -43,12 +43,12 @@
 
             <StackPanel Grid.Column="1"
                         VerticalAlignment="Center">
-                <TextBlock Text="Admin Panel"
+                <TextBlock Text="{DynamicResource AdminPanel}"
                            Foreground="#111827"
                            FontSize="26"
                            FontWeight="SemiBold"/>
 
-                <TextBlock Text="จัดการผู้ใช้งานและกำหนดเวลาการใช้งาน"
+                <TextBlock Text="{DynamicResource AdminSubtitle}"
                            Foreground="#6B7280"
                            FontSize="14"
                            Margin="0 3 0 0"/>
@@ -91,12 +91,12 @@
                         </Grid.ColumnDefinitions>
 
                         <StackPanel>
-                            <TextBlock Text="Users"
+                            <TextBlock Text="{DynamicResource Users}"
                                        Foreground="#111827"
                                        FontSize="19"
                                        FontWeight="SemiBold"/>
 
-                            <TextBlock Text="เลือกผู้ใช้เพื่อแก้ไขข้อมูล"
+                            <TextBlock Text="{DynamicResource SelectUserHint}"
                                        Foreground="#6B7280"
                                        FontSize="12"
                                        Margin="0 2 0 0"/>
@@ -117,16 +117,62 @@
                               SelectionMode="Single"
                               SelectionChanged="UsersDataGrid_SelectionChanged">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Username"
+                            <DataGridTextColumn Header="{DynamicResource Username}"
                                                 Binding="{Binding Username}"
                                                 Width="1.4*"/>
-                            <DataGridTextColumn Header="Password"
-                                                Binding="{Binding Password}"
-                                                Width="1.2*"/>
-                            <DataGridTextColumn Header="Minutes"
+                            <DataGridTemplateColumn Width="1.2*">
+                                <DataGridTemplateColumn.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{DynamicResource Password}"
+                                                   VerticalAlignment="Center"/>
+                                        <Button x:Name="PasswordVisibilityButton"
+                                                Content="{DynamicResource Show}"
+                                                Margin="8 0 0 0"
+                                                Padding="7 2"
+                                                FontSize="11"
+                                                Click="PasswordVisibilityButton_Click"/>
+                                    </StackPanel>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <TextBlock Text="••••••"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True"
+                                                                         Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=IsPasswordVisible}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+
+                                            <TextBlock Text="{Binding Password}"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True"
+                                                                         Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type Window}}, Path=IsPasswordVisible}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="{DynamicResource Minutes}"
                                                 Binding="{Binding AllowedMinutes}"
                                                 Width="90"/>
-                            <DataGridTextColumn Header="Role"
+                            <DataGridTextColumn Header="{DynamicResource Role}"
                                                 Binding="{Binding Role}"
                                                 Width="90"/>
                         </DataGrid.Columns>
@@ -157,12 +203,12 @@
 
                     <StackPanel Grid.Row="0"
                                 Margin="0 0 0 14">
-                        <TextBlock Text="User Detail"
+                        <TextBlock Text="{DynamicResource UserDetail}"
                                    Foreground="#111827"
                                    FontSize="21"
                                    FontWeight="SemiBold"/>
 
-                        <TextBlock Text="เพิ่มหรือแก้ไขข้อมูลผู้ใช้งาน"
+                        <TextBlock Text="{DynamicResource UserDetailSubtitle}"
                                    Foreground="#6B7280"
                                    FontSize="12"
                                    Margin="0 2 0 0"/>
@@ -174,7 +220,7 @@
 
                         <StackPanel>
 
-                            <TextBlock Text="Username"
+                            <TextBlock Text="{DynamicResource Username}"
                                        Foreground="#374151"
                                        FontSize="13"
                                        FontWeight="Medium"
@@ -206,7 +252,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Text="Password"
+                            <TextBlock Text="{DynamicResource Password}"
                                        Foreground="#374151"
                                        FontSize="13"
                                        FontWeight="Medium"
@@ -238,7 +284,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Text="Allowed Minutes"
+                            <TextBlock Text="{DynamicResource AllowedMinutes}"
                                        Foreground="#374151"
                                        FontSize="13"
                                        FontWeight="Medium"
@@ -272,7 +318,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Text="Role"
+                            <TextBlock Text="{DynamicResource Role}"
                                        Foreground="#374151"
                                        FontSize="13"
                                        FontWeight="Medium"
@@ -281,8 +327,8 @@
                             <ComboBox x:Name="RoleComboBox"
                                       Style="{StaticResource ModernComboBoxStyle}"
                                       Margin="0 0 0 14">
-                                <ComboBoxItem Content="user"/>
-                                <ComboBoxItem Content="admin"/>
+                                <ComboBoxItem Content="{DynamicResource UserRole}"/>
+                                <ComboBoxItem Content="{DynamicResource AdminRole}"/>
                             </ComboBox>
 
                             <TextBlock x:Name="MessageTextBlock"
@@ -312,26 +358,26 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button Content="เพิ่ม"
+                            <Button Content="{DynamicResource Add}"
                                     Grid.Column="0"
                                     Style="{StaticResource PrimaryButtonStyle}"
                                     Height="40"
                                     Click="AddButton_Click"/>
 
-                            <Button Content="แก้ไข"
+                            <Button Content="{DynamicResource Edit}"
                                     Grid.Column="2"
                                     Style="{StaticResource SecondaryButtonStyle}"
                                     Height="40"
                                     Click="UpdateButton_Click"/>
                         </Grid>
 
-                        <Button Content="ลบ User"
+                        <Button Content="{DynamicResource DeleteUser}"
                                 Grid.Row="2"
                                 Style="{StaticResource DangerButtonStyle}"
                                 Height="40"
                                 Click="DeleteButton_Click"/>
 
-                        <Button Content="ล้างฟอร์ม"
+                        <Button Content="{DynamicResource ClearForm}"
                                 Grid.Row="4"
                                 Style="{StaticResource SecondaryButtonStyle}"
                                 Height="40"
@@ -349,7 +395,7 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Tip: เลือก user จากตารางด้านซ้ายเพื่อแก้ไขข้อมูล"
+            <TextBlock Text="{DynamicResource AdminTip}"
                        Foreground="#6B7280"
                        FontSize="13"
                        VerticalAlignment="Center"/>
@@ -358,7 +404,7 @@
                         Orientation="Horizontal"
                         HorizontalAlignment="Right">
 
-                <Button Content="ประวัติการใช้งาน"
+                <Button Content="{DynamicResource History}"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Width="160"
                         Height="40"
@@ -366,21 +412,21 @@
                         Click="SessionHistoryButton_Click"/>
 
                 <Button x:Name="SyncUsersButton"
-                        Content="Sync Users"
+                        Content="{DynamicResource SyncUsers}"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Width="130"
                         Height="40"
                         Margin="0,0,10,0"
                         Click="SyncUsersButton_Click"/>
 
-                <Button Content="กลับหน้า Login"
+                <Button Content="{DynamicResource BackToLogin}"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Width="150"
                         Height="40"
                         Margin="0 0 10 0"
                         Click="BackToLoginButton_Click"/>
 
-                <Button Content="ปิดโปรแกรม"
+                <Button Content="{DynamicResource ExitProgram}"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Width="130"
                         Height="40"

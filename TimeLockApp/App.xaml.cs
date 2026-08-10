@@ -8,11 +8,15 @@ namespace TimeLockApp;
 /// </summary>
 public partial class App : Application
 {
+    public static LanguageService Language { get; } = LanguageService.Default;
+
     private SingleInstanceGuard? _singleInstanceGuard;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        Language.SetLanguage("th");
 
         _singleInstanceGuard = SingleInstanceGuard.TryAcquire(
             @"Local\TimeLockApp.SingleInstance");

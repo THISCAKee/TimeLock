@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace TimeLockApp.Services;
 
 internal static class AutomaticSyncStatus
@@ -10,14 +8,17 @@ internal static class AutomaticSyncStatus
     {
         if (result.IsSuccessful)
         {
-            return string.Format(
-                CultureInfo.InvariantCulture,
-                "ซิงค์ล่าสุด {0:HH:mm:ss}: {1} รายการ",
+            return LanguageServiceForStatus.Get(
+                "LatestSync",
                 completedAt,
                 result.UserCount);
         }
 
-        return $"ซิงค์ไม่สำเร็จ: {result.ErrorMessage} " +
-               "(จะลองใหม่อัตโนมัติ)";
+        return LanguageServiceForStatus.Get(
+            "LatestSyncFailed",
+            result.ErrorMessage);
     }
+
+    private static LanguageService LanguageServiceForStatus =>
+        LanguageService.Default;
 }

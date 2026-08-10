@@ -40,8 +40,8 @@ public partial class UsageWindow : Window
     {
         MessageBoxResult result = MessageBox.Show(
             this,
-            "ต้องการออกจากระบบหรือไม่?",
-            "ยืนยันการออกจากระบบ",
+            App.Language.Get("LogoutConfirm"),
+            App.Language.Get("LogoutConfirmTitle"),
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 

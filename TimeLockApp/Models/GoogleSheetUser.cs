@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using TimeLockApp.Services;
 
 namespace TimeLockApp.Models;
 
@@ -20,7 +21,7 @@ public sealed class GoogleSheetUser
         if (row.Count < 6)
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber} มีข้อมูลไม่ครบ 6 คอลัมน์");
+                LanguageService.Default.Get("SheetRowIncomplete", rowNumber));
         }
 
         string userIdText = GetCell(row, 0);
@@ -39,19 +40,19 @@ public sealed class GoogleSheetUser
             userId <= 0)
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: UserId ต้องเป็นเลขจำนวนเต็มมากกว่า 0");
+                LanguageService.Default.Get("SheetUserIdInvalid", rowNumber));
         }
 
         if (string.IsNullOrWhiteSpace(username))
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: Username ห้ามว่าง");
+                LanguageService.Default.Get("SheetUsernameEmpty", rowNumber));
         }
 
         if (string.IsNullOrWhiteSpace(password))
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: Password ห้ามว่าง");
+                LanguageService.Default.Get("SheetPasswordEmpty", rowNumber));
         }
 
         if (!int.TryParse(
@@ -62,19 +63,19 @@ public sealed class GoogleSheetUser
             allowedMinutes < 0)
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: AllowedMinutes ต้องเป็นเลขตั้งแต่ 0 ขึ้นไป");
+                LanguageService.Default.Get("SheetMinutesInvalid", rowNumber));
         }
 
         if (role != "user" && role != "admin")
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: Role ต้องเป็น user หรือ admin");
+                LanguageService.Default.Get("SheetRoleInvalid", rowNumber));
         }
 
         if (!bool.TryParse(isActiveText, out bool isActive))
         {
             throw new InvalidOperationException(
-                $"แถวที่ {rowNumber}: IsActive ต้องเป็น TRUE หรือ FALSE");
+                LanguageService.Default.Get("SheetActiveInvalid", rowNumber));
         }
 
         return new GoogleSheetUser

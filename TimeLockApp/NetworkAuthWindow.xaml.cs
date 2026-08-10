@@ -67,7 +67,7 @@ public partial class NetworkAuthWindow : Window
     object? sender,
     CoreWebView2NavigationStartingEventArgs e)
     {
-        StatusTextBlock.Text = "กำลังเชื่อมต่อระบบยืนยันตัวตน...";
+        StatusTextBlock.Text = App.Language.Get("ConnectingAuth");
 
         if (IsAuthenticationSuccessUrl(e.Uri))
         {
@@ -83,7 +83,7 @@ public partial class NetworkAuthWindow : Window
 
         if (!e.IsSuccess)
         {
-            ShowError($"โหลดหน้าเว็บไม่สำเร็จ: {e.WebErrorStatus}");
+            ShowError(App.Language.Get("LoadWebFailed", e.WebErrorStatus));
             return;
         }
 
@@ -95,8 +95,7 @@ public partial class NetworkAuthWindow : Window
             return;
         }
 
-        StatusTextBlock.Text =
-            "กรุณาเข้าสู่ระบบเครือข่ายมหาวิทยาลัย";
+        StatusTextBlock.Text = App.Language.Get("NetworkLoginPrompt");
     }
     private static bool IsAuthenticationSuccessUrl(string? url)
     {
@@ -119,8 +118,7 @@ public partial class NetworkAuthWindow : Window
 
         _isCheckingConnection = true;
 
-        StatusTextBlock.Text =
-            "ยืนยันตัวตนสำเร็จ กำลังตรวจสอบการเชื่อมต่ออินเทอร์เน็ต...";
+        StatusTextBlock.Text = App.Language.Get("AuthSuccessChecking");
 
         try
         {
@@ -131,8 +129,7 @@ public partial class NetworkAuthWindow : Window
 
             if (!hasInternet)
             {
-                StatusTextBlock.Text =
-                    "ยืนยันตัวตนแล้ว แต่ยังไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้";
+                StatusTextBlock.Text = App.Language.Get("AuthSuccessNoInternet");
 
                 _isCheckingConnection = false;
                 return;
@@ -147,7 +144,7 @@ public partial class NetworkAuthWindow : Window
         catch (Exception ex)
         {
             StatusTextBlock.Text =
-                $"ตรวจสอบอินเทอร์เน็ตไม่สำเร็จ: {ex.Message}";
+                App.Language.Get("InternetCheckFailed", ex.Message);
 
             _isCheckingConnection = false;
         }
@@ -175,7 +172,7 @@ public partial class NetworkAuthWindow : Window
         ErrorPanel.Visibility = Visibility.Visible;
 
         ErrorTextBlock.Text = message;
-        StatusTextBlock.Text = "เชื่อมต่อไม่สำเร็จ";
+        StatusTextBlock.Text = App.Language.Get("NetworkConnectionFailed");
     }
 
     private void Window_PreviewKeyDown(
