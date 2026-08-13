@@ -1,0 +1,3 @@
+# Task 1: Add regression checks for uninstall ownership and installer exposure
+
+Modify `TimeLockApp.Tests/ApplicationUninstallerTests.cs` and register tests if needed. Add regression checks that `deployment/installer/TimeLock.iss` contains `Uninstallable=no`, `AdminWindow.xaml` contains `Click="UninstallButton_Click"`, and `MainWindow.xaml` contains no case-insensitive `Uninstall` text. Use repository-root-derived paths. Run `dotnet run --project TimeLockApp.Tests/TimeLockApp.Tests.csproj`. The current worktree may already satisfy the assertions; in that case keep production code unchanged and use tests as regression coverage. Preserve unrelated changes. Commit if possible, but `.git` may be read-only.

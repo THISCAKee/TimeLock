@@ -1,0 +1,3 @@
+# Task 3: Run final verification
+
+Verify the current worktree without editing product files. Run `dotnet run --project TimeLockApp.Tests/TimeLockApp.Tests.csproj`, then `dotnet build TimeLockApp.csproj --no-restore`, then `rg -n -i "Uninstall|unins000|Uninstallable|UninstallDelete" --glob '!bin/**' --glob '!obj/**' --glob '!publish/**' .`. Confirm only AdminWindow contains the executable uninstall UI handler, MainWindow has no uninstall control, installer keeps `Uninstallable=no`, and README points to Admin Panel. Write results to `D:\TimeOut\TimeLockApp\.superpowers\sdd\2026-08-10-admin-panel-only-uninstall\task-3-report.md`. Do not edit files or commit.

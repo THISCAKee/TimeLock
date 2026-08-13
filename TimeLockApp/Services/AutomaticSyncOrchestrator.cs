@@ -16,7 +16,7 @@ internal sealed record AutomaticSyncCompletedEventArgs(
 internal sealed class AutomaticSyncOrchestrator
 {
     internal static readonly TimeSpan Interval =
-        TimeSpan.FromSeconds(30);
+        TimeSpan.FromSeconds(10);
 
     private readonly Func<CancellationToken, Task<UserSyncResult>> _synchronize;
     private readonly SemaphoreSlim _gate = new(1, 1);

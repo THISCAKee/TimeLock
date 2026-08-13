@@ -1,0 +1,3 @@
+# Task 2: Align installer documentation with Admin Panel-only uninstall
+
+Modify only `deployment/installer/README.md`. Replace the existing sentence that recommends manually removing the application folder with wording that says Windows does not expose an uninstall entry and an authenticated administrator must use Admin Panel → Uninstall Program. Keep installation, credential, and startup instructions unchanged. Run `rg` over the README, installer script, AdminWindow, and MainWindow plus `git diff --check`. Preserve unrelated changes. Commit if possible, but `.git` may be read-only. Write a full report to `D:\TimeOut\TimeLockApp\.superpowers\sdd\2026-08-10-admin-panel-only-uninstall\task-2-report.md`.

@@ -1,8 +1,10 @@
 using Microsoft.Web.WebView2.Core;
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using TimeLockApp.Services;
 
 namespace TimeLockApp;
 
@@ -42,7 +44,14 @@ public partial class NetworkAuthWindow : Window
             LoadingPanel.Visibility = Visibility.Visible;
             ErrorPanel.Visibility = Visibility.Collapsed;
 
-            await AuthWebView.EnsureCoreWebView2Async();
+            string userDataFolder = WebView2ProfilePath.GetUserDataFolder();
+            Directory.CreateDirectory(userDataFolder);
+
+            CoreWebView2Environment environment =
+                await CoreWebView2Environment.CreateAsync(
+                    userDataFolder: userDataFolder);
+
+            await AuthWebView.EnsureCoreWebView2Async(environment);
 
             AuthWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
             AuthWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;

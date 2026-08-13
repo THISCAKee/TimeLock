@@ -29,11 +29,6 @@ public partial class UsageWindow : Window
         RemainingTimeTextBlock.Text = $"{minutes:00}:{seconds:00}";
     }
 
-    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
-    {
-        WindowState = WindowState.Minimized;
-    }
-
     private void LogoutButton_Click(
         object sender,
         RoutedEventArgs e)

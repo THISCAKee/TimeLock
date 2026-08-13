@@ -37,3 +37,53 @@
 2026-08-05 11:33:35.860: [INFO] BookmarksLoadDropped droppedNodes=0
 2026-08-05 11:33:35.860: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
 2026-08-05 11:33:48.625: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-06 04:16:51.942: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-06 04:16:51.942: [INFO] Profiles total count: 1
+2026-08-06 04:16:51.943: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T11:33:48.601Z
+2026-08-06 04:16:51.943: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-06 04:16:51.943: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T11:33:48.601Z
+2026-08-06 04:16:51.943: [INFO] OnDoneLoading sync enabled: 0
+2026-08-06 04:16:51.943: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-06 04:16:51.943: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-06 04:16:51.943: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-06 04:16:54.391: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:22:07.107: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:22:07.107: [INFO] Profiles total count: 1
+2026-08-07 06:22:07.107: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T11:33:48.601Z
+2026-08-07 06:22:07.107: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:22:07.107: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-05T11:33:48.601Z
+2026-08-07 06:22:07.107: [INFO] OnDoneLoading sync enabled: 0
+2026-08-07 06:22:07.107: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-07 06:22:07.107: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-07 06:22:07.107: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:22:23.800: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:23:06.488: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:23:06.488: [INFO] Profiles total count: 1
+2026-08-07 06:23:06.488: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:22:10.615Z
+2026-08-07 06:23:06.488: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:23:06.488: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:22:10.615Z
+2026-08-07 06:23:06.488: [INFO] OnDoneLoading sync enabled: 0
+2026-08-07 06:23:06.488: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-07 06:23:06.488: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-07 06:23:06.488: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:23:48.547: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:56:43.770: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:56:43.770: [INFO] Profiles total count: 1
+2026-08-07 06:56:43.770: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:23:07.496Z
+2026-08-07 06:56:43.770: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 06:56:43.770: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:23:07.496Z
+2026-08-07 06:56:43.770: [INFO] OnDoneLoading sync enabled: 0
+2026-08-07 06:56:43.770: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-07 06:56:43.770: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-07 06:56:43.770: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 06:56:55.822: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 07:42:06.938: [INFO] CurrentProfilePath: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 07:42:06.938: [INFO] Profiles total count: 1
+2026-08-07 07:42:06.938: [INFO] Profile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:56:55.789Z
+2026-08-07 07:42:06.938: [INFO] LastUsedProfileDir: D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default
+2026-08-07 07:42:06.938: [INFO] MostRecentlyActiveProfile: name=Profile 1 path=D:\TimeOut\TimeLockApp\bin\Debug\net10.0-windows\TimeLockApp.exe.WebView2\EBWebView\Default lastActive=2026-08-07T06:56:55.789Z
+2026-08-07 07:42:06.938: [INFO] OnDoneLoading sync enabled: 0
+2026-08-07 07:42:06.938: [INFO] BookmarkModelLoaded, ids_reassigned: 0
+2026-08-07 07:42:06.938: [INFO] BookmarksLoadDropped droppedNodes=0
+2026-08-07 07:42:06.938: [INFO] BookmarksSnapshot Startup total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1
+2026-08-07 07:42:09.933: [INFO] BookmarksSnapshot Shutdown total=0 bar=0 other=0 mobile=0 showBar=0 showBarNTP=1

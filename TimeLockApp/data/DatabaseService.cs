@@ -16,10 +16,19 @@ public class DatabaseService
 
 
     public DatabaseService()
-        : this(Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "timelock.db"))
     {
+        string dataDirectory = Path.Combine(
+        Environment.GetFolderPath(
+            Environment.SpecialFolder.CommonApplicationData),
+        "TimeLockApp");
+
+        Directory.CreateDirectory(dataDirectory);
+
+        string dbPath = Path.Combine(
+            dataDirectory,
+            "timelock.db");
+
+        _connectionString = $"Data Source={dbPath}";
     }
 
     internal DatabaseService(string databasePath)

@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private bool _sessionEnded;
     private IntPtr _keyboardHook = IntPtr.Zero;
     private bool _isNetworkAuthOpen;
+    private bool _isShutdownConfirmationOpen;
     private readonly InternetConnectivityService _connectivityService = new();
     private bool _startupConnectivityChecked;
     private AdminWindow? _adminWindow;
@@ -96,6 +97,44 @@ public partial class MainWindow : Window
         RoutedEventArgs e)
     {
         SetLanguage("en");
+    }
+
+    private void ShutdownButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isShutdownConfirmationOpen = true;
+
+        MessageBoxResult result;
+        try
+        {
+            result = MessageBox.Show(
+                this,
+                App.Language.Get("ShutdownConfirm"),
+                App.Language.Get("ShutdownConfirmTitle"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _isShutdownConfirmationOpen = false;
+        }
+
+        if (result != MessageBoxResult.Yes)
+        {
+            ActivateLoginWindow();
+            return;
+        }
+
+        try
+        {
+            _isShuttingDown = true;
+            ShutdownService.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            _isShuttingDown = false;
+            MessageTextBlock.Text =
+                App.Language.Get("ShutdownFailed", ex.Message);
+        }
     }
 
     private void SetLanguage(string language)
@@ -530,7 +569,8 @@ public partial class MainWindow : Window
         if (!_isSessionActive &&
          !_isAlertOpen &&
          !_isAdminPanelOpen &&
-         !_isNetworkAuthOpen)
+         !_isNetworkAuthOpen &&
+         !_isShutdownConfirmationOpen)
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
@@ -563,7 +603,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        e.Cancel = true;
+        e.Cancel = !_isShuttingDown;
     }
 
     protected override void OnClosed(EventArgs e)

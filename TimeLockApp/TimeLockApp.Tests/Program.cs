@@ -16,6 +16,8 @@ var tests = new (string Name, Action Run)[]
 };
 
 tests = tests
+    .Concat(ApplicationUninstallerTests.All())
+    .Concat(ShutdownServiceTests.All())
     .Concat(LanguageServiceTests.All())
     .Concat(LockAndWarningTests.All())
     .Concat(InterruptedSessionRecoveryTests.All())
@@ -24,6 +26,7 @@ tests = tests
     .Concat(UserSyncServiceTests.All())
     .Concat(AutomaticSyncOrchestratorTests.All())
     .Concat(AutomaticSyncStatusTests.All())
+    .Concat(WebView2ProfilePathTests.All())
     .ToArray();
 
 int failures = 0;

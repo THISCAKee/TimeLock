@@ -5,6 +5,7 @@
         WindowStyle="None"
         WindowState="Maximized"
         ResizeMode="NoResize"
+        ShowInTaskbar="False"
         Topmost="True"
         Background="White"
         PreviewKeyDown="Window_PreviewKeyDown"
@@ -202,6 +203,13 @@
                         FontSize="15"
                         Margin="0,10,0,0"
                         Click="NetworkAuthButton_Click"/>
+
+                <Button Content="{DynamicResource ShutdownComputer}"
+                        Style="{StaticResource DangerButtonStyle}"
+                        Height="44"
+                        FontSize="15"
+                        Margin="0,10,0,0"
+                        Click="ShutdownButton_Click"/>
             </StackPanel>
         </Border>
     </Grid>

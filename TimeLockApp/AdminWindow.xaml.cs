@@ -229,6 +229,31 @@ public partial class AdminWindow : Window
         Application.Current.Shutdown();
     }
 
+    private void UninstallButton_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBoxResult result = MessageBox.Show(
+            App.Language.Get("UninstallConfirm"),
+            App.Language.Get("UninstallConfirmTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        if (!ApplicationUninstaller.TryStart(
+                AppContext.BaseDirectory,
+                out string errorMessage))
+        {
+            MessageTextBlock.Text =
+                App.Language.Get("UninstallFailed", errorMessage);
+            return;
+        }
+
+        Application.Current.Shutdown();
+    }
+
     private bool TryReadForm(out string username, out string password, out int allowedMinutes, out string role)
     {
         username = UsernameTextBox.Text.Trim();

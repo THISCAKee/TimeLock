@@ -5,8 +5,8 @@ internal static class AutomaticSyncOrchestratorTests
     public static IEnumerable<(string Name, Action Run)> All()
     {
         yield return (
-            "automatic sync interval is thirty seconds",
-            IntervalIsThirtySeconds);
+            "automatic sync interval is ten seconds",
+            IntervalIsTenSeconds);
         yield return (
             "all automatic sync triggers use the same path",
             () => AllTriggersUseSamePathAsync().GetAwaiter().GetResult());
@@ -15,11 +15,11 @@ internal static class AutomaticSyncOrchestratorTests
             () => TriggersNeverOverlapAsync().GetAwaiter().GetResult());
     }
 
-    private static void IntervalIsThirtySeconds()
+    private static void IntervalIsTenSeconds()
     {
         AssertTrue(
-            AutomaticSyncOrchestrator.Interval == TimeSpan.FromSeconds(30),
-            "Automatic synchronization must run every 30 seconds.");
+            AutomaticSyncOrchestrator.Interval == TimeSpan.FromSeconds(10),
+            "Automatic synchronization must run every 10 seconds.");
     }
 
     private static async Task AllTriggersUseSamePathAsync()

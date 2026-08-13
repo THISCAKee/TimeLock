@@ -6,6 +6,7 @@
         Height="92"
         WindowStartupLocation="Manual"
         ResizeMode="NoResize"
+        ShowInTaskbar="False"
         Topmost="True"
         WindowStyle="None"
         Background="Transparent"
@@ -61,25 +62,6 @@
                         </Button.Template>
                     </Button>
 
-                    <Button Content="—"
-                            Width="26"
-                            Height="20"
-                            FontSize="12"
-                            Background="#F3F4F6"
-                            Foreground="#111827"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            Click="MinimizeButton_Click">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}"
-                                        CornerRadius="7">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
                 </StackPanel>
             </Grid>
 

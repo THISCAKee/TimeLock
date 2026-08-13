@@ -426,6 +426,13 @@
                         Margin="0 0 10 0"
                         Click="BackToLoginButton_Click"/>
 
+                <Button Content="{DynamicResource UninstallProgram}"
+                        Style="{StaticResource DangerButtonStyle}"
+                        Width="160"
+                        Height="40"
+                        Margin="0 0 10 0"
+                        Click="UninstallButton_Click"/>
+
                 <Button Content="{DynamicResource ExitProgram}"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Width="130"
