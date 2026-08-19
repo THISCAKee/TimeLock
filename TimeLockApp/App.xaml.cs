@@ -27,7 +27,21 @@ public partial class App : Application
             return;
         }
 
-        var mainWindow = new MainWindow();
+        TimelockConfigurationService configurationService = new();
+        TimelockDeviceConfiguration? configuration = configurationService.Load();
+        if (configuration is null)
+        {
+            ProvisioningWindow provisioning = new();
+            if (provisioning.ShowDialog() != true || provisioning.Configuration is null)
+            {
+                Shutdown();
+                return;
+            }
+            configuration = provisioning.Configuration;
+            configurationService.Save(configuration);
+        }
+
+        var mainWindow = new MainWindow(configuration);
         MainWindow = mainWindow;
         mainWindow.Show();
     }

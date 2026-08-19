@@ -137,6 +137,23 @@ public class DatabaseService
         return (int)sessionId;
     }
 
+    public int StartSession(string username, int allowedMinutes)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+        const string sql = """
+        INSERT INTO sessions (user_id, username, start_time, allowed_minutes, status)
+        VALUES (NULL, $username, $start_time, $allowed_minutes, 'active');
+        SELECT last_insert_rowid();
+        """;
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$username", username);
+        command.Parameters.AddWithValue("$start_time", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        command.Parameters.AddWithValue("$allowed_minutes", allowedMinutes);
+        return (int)(long)command.ExecuteScalar()!;
+    }
+
     public void EndSession(int sessionId, int usedSeconds, string status)
     {
         using var connection = new SqliteConnection(_connectionString);
@@ -520,12 +537,6 @@ public class DatabaseService
             "deactivation_pending",
             "INTEGER NOT NULL DEFAULT 0");
 
-        // แล้วค่อย seed user เดิม
-        SeedDefaultUsers(connection);
-
-        // ทำให้ admin เป็น local-only
-        MarkEmergencyAdminAsLocalOnly(connection);
-
         string createSessionsTableSql = @"
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -546,6 +557,12 @@ public class DatabaseService
         createSessionsCommand.ExecuteNonQuery();
 
         EnsureSessionsSchemaSupportsUserDeletion(connection);
+
+        // Version 2 authenticates all normal users through the gateway and stores
+        // the local admin verifier in a DPAPI-protected configuration file.
+        using var removeLegacyCredentials = connection.CreateCommand();
+        removeLegacyCredentials.CommandText = "DELETE FROM users;";
+        removeLegacyCredentials.ExecuteNonQuery();
 
     }
 
@@ -887,67 +904,6 @@ public class DatabaseService
             $"ADD COLUMN {columnName} {definition};";
 
         command.ExecuteNonQuery();
-    }
-
-    private static void MarkEmergencyAdminAsLocalOnly(
-    SqliteConnection connection)
-    {
-        const string sql = """
-        UPDATE users
-        SET is_local_only = 1,
-            is_active = 1
-        WHERE username = 'admin'
-          AND role = 'admin';
-        """;
-
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        command.ExecuteNonQuery();
-    }
-
-
-    private static void SeedDefaultUsers(
-     SqliteConnection connection)
-    {
-        const string checkSql = """
-        SELECT COUNT(*)
-        FROM users
-        WHERE username = 'admin';
-        """;
-
-        using var checkCommand = connection.CreateCommand();
-        checkCommand.CommandText = checkSql;
-
-        long adminCount =
-            Convert.ToInt64(checkCommand.ExecuteScalar());
-
-        if (adminCount > 0)
-        {
-            return;
-        }
-
-        const string insertSql = """
-        INSERT INTO users (
-            username,
-            password,
-            allowed_minutes,
-            role,
-            is_active,
-            is_local_only
-        )
-        VALUES (
-            'admin',
-            'admin123',
-            0,
-            'admin',
-            1,
-            1
-        );
-        """;
-
-        using var insertCommand = connection.CreateCommand();
-        insertCommand.CommandText = insertSql;
-        insertCommand.ExecuteNonQuery();
     }
 
     public UserRecord? GetUserByUsernameAndPassword(

@@ -9,10 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.75.0.4178" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
   </ItemGroup>
 
    <ItemGroup>
@@ -25,13 +25,8 @@
   </ItemGroup>
   
   <ItemGroup>
-  <Content Include="Secrets\service-account.json">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-  </Content>
-</ItemGroup>
-
-  <ItemGroup>
+  <Compile Remove="Services\GoogleSheetsUserService.cs" />
+  <Compile Remove="Configuration\GoogleSheetsConfig.cs" />
   <Compile Remove="TimeLockApp.Tests\**\*.cs" />
   <Compile Remove="TimeLockApp.AdminWeb\**\*.cs" />
   <None Remove="TimeLockApp.AdminWeb\**\*" />

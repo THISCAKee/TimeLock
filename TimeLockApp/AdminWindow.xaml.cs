@@ -17,7 +17,7 @@ public partial class AdminWindow : Window
 
     private readonly DatabaseService _databaseService;
     private UserRecord? _selectedUser;
-    private readonly UserSyncService _userSyncService;
+    private readonly Func<CancellationToken, Task<UserSyncResult>> _synchronize;
 
     public bool BackToLoginRequested { get; private set; }
 
@@ -29,12 +29,12 @@ public partial class AdminWindow : Window
 
     public AdminWindow(
         DatabaseService databaseService,
-        UserSyncService userSyncService)
+        Func<CancellationToken, Task<UserSyncResult>> synchronize)
     {
         InitializeComponent();
 
         _databaseService = databaseService;
-        _userSyncService = userSyncService;
+        _synchronize = synchronize;
 
         Loaded += AdminWindow_Loaded;
     }
@@ -311,7 +311,7 @@ public partial class AdminWindow : Window
         try
         {
             UserSyncResult result =
-                await _userSyncService.SynchronizeAsync();
+                await _synchronize(CancellationToken.None);
 
             if (!result.IsSuccessful)
             {

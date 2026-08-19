@@ -5,8 +5,8 @@ using TimeLockApp.Models;
 var tests = new (string Name, Action Run)[]
 {
     (
-        "empty sheet removes consumed user and preserves history and admin",
-        EmptySheetRemovesConsumedUserAndPreservesHistoryAndAdmin),
+        "empty gateway cache removes legacy user and preserves history",
+        EmptyGatewayCacheRemovesLegacyUserAndPreservesHistory),
     (
         "non-empty sheet removes consumed missing user and keeps present user",
         NonEmptySheetRemovesConsumedMissingUserAndKeepsPresentUser),
@@ -26,6 +26,7 @@ tests = tests
     .Concat(UserSyncServiceTests.All())
     .Concat(AutomaticSyncOrchestratorTests.All())
     .Concat(AutomaticSyncStatusTests.All())
+    .Concat(TimelockGatewayTests.All())
     .Concat(WebView2ProfilePathTests.All())
     .ToArray();
 
@@ -48,7 +49,7 @@ foreach ((string name, Action run) in tests)
 
 return failures == 0 ? 0 : 1;
 
-static void EmptySheetRemovesConsumedUserAndPreservesHistoryAndAdmin()
+static void EmptyGatewayCacheRemovesLegacyUserAndPreservesHistory()
 {
     using var testDatabase = new TestDatabase();
     DatabaseService database = testDatabase.Service;
@@ -70,9 +71,8 @@ static void EmptySheetRemovesConsumedUserAndPreservesHistoryAndAdmin()
         database.GetAllUsers().Any(user => user.Username == "removed"),
         "Consumed user missing from an empty Sheet must be removed.");
     AssertTrue(
-        database.GetAllUsers().Any(user =>
-            user.Username == "admin" && user.IsLocalOnly),
-        "Local-only admin must remain.");
+        database.GetAllUsers().Count == 0,
+        "Legacy credential rows must not remain in SQLite.");
     AssertTrue(
         database.GetAllSessions().Any(session =>
             session.Username == "removed" && session.Id == sessionId),

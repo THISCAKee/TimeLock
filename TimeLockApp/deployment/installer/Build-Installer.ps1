@@ -68,8 +68,7 @@ if ($LASTEXITCODE -ne 0) {
     throw 'dotnet publish failed.'
 }
 
-# The application project includes this file for local development. Remove it
-# from the installer staging directory so credentials are never packaged.
+# Defense in depth: gateway clients must never contain a Google credential.
 Get-ChildItem -LiteralPath $publishDir -Filter 'service-account.json' -File -Recurse -ErrorAction SilentlyContinue |
     Remove-Item -Force
 

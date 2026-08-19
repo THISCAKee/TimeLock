@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,12 +22,16 @@ public partial class MainWindow : Window
     private const int LlkhfAltDown = 0x20;
     private const int VkControl = 0x11;
 
-    private readonly UserSyncService _userSyncService;
     private readonly AutomaticSyncOrchestrator _automaticSync;
     private readonly DispatcherTimer _automaticSyncTimer;
     private readonly ChromeLauncherService _chromeLauncherService = new();
 
     private readonly DatabaseService _databaseService = new();
+    private readonly TimelockDeviceConfiguration _deviceConfiguration;
+    private readonly TimelockApiClient _timelockApi;
+    private readonly TimelockOfflineCache _offlineCache = new();
+    private readonly TimelockPendingSessionStore _pendingSessions = new();
+    private readonly TimelockStatusReporter _statusReporter;
     private readonly LowLevelKeyboardProc _keyboardProc;
 
     private DispatcherTimer? _timer;
@@ -36,7 +41,8 @@ public partial class MainWindow : Window
     private bool _isAlertOpen;
     private bool _isAdminPanelOpen;
     private int _currentSessionId;
-    private int _currentUserId;
+    private TimelockLoginSession? _currentGatewaySession;
+    private string? _heartbeatUsername;
     private int _sessionTotalSeconds;
     private bool _sessionEnded;
     private IntPtr _keyboardHook = IntPtr.Zero;
@@ -48,25 +54,25 @@ public partial class MainWindow : Window
     private bool _isShuttingDown;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    public MainWindow()
+    public MainWindow(TimelockDeviceConfiguration deviceConfiguration)
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
         InitializeComponent();
+
+        _deviceConfiguration = deviceConfiguration;
+        _timelockApi = new TimelockApiClient(deviceConfiguration);
+        _statusReporter = new TimelockStatusReporter(
+            _timelockApi,
+            deviceConfiguration,
+            () => _heartbeatUsername);
 
         _keyboardProc = KeyboardHookCallback;
 
         _databaseService.InitializeDatabase();
         _databaseService.RecoverInterruptedSessions(DateTime.Now);
 
-        var googleSheetsUserService =
-            new GoogleSheetsUserService();
-
-        _userSyncService = new UserSyncService(
-            googleSheetsUserService,
-            _databaseService);
-
         _automaticSync = new AutomaticSyncOrchestrator(
-            _userSyncService.SynchronizeAsync);
+            SynchronizeGatewayAsync);
         _automaticSync.Completed += AutomaticSync_Completed;
 
         _automaticSyncTimer = new DispatcherTimer
@@ -77,6 +83,41 @@ public partial class MainWindow : Window
 
         Loaded += MainWindow_Loaded;
 
+    }
+
+    private async Task<UserSyncResult> SynchronizeGatewayAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            foreach (PendingTimelockSession pending in _pendingSessions.Load())
+            {
+                if (pending.Session.IsOffline)
+                {
+                    await _timelockApi.ReconcileOfflineSessionAsync(
+                        pending.Session, pending.UsedSeconds, pending.Status, cancellationToken);
+                }
+                else
+                {
+                    await _timelockApi.LogoutAsync(
+                        pending.Session.SessionId, pending.UsedSeconds, pending.Status, cancellationToken);
+                }
+                _pendingSessions.Remove(pending.Session.SessionId);
+            }
+
+            (IReadOnlyList<TimelockOfflineAccount> accounts, DateTimeOffset serverTime) =
+                await _timelockApi.SyncAsync(cancellationToken);
+            _offlineCache.Save(accounts, serverTime);
+            return UserSyncResult.Success(accounts.Count, hasChanges: true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return UserSyncResult.Failure(ex.Message);
+        }
     }
     private async void NetworkAuthButton_Click(
      object sender,
@@ -248,6 +289,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _statusReporter.Start();
         _automaticSyncTimer.Start();
 
         if (_startupConnectivityChecked)
@@ -319,12 +361,13 @@ public partial class MainWindow : Window
     private void OpenAdminPanel()
     {
         _isAdminPanelOpen = true;
+        _heartbeatUsername = "local-admin";
 
         Hide();
 
         AdminWindow adminWindow = new(
             _databaseService,
-            _userSyncService);
+            SynchronizeGatewayAsync);
 
         _adminWindow = adminWindow;
 
@@ -338,6 +381,7 @@ public partial class MainWindow : Window
         }
 
         _isAdminPanelOpen = false;
+        _heartbeatUsername = null;
 
         UsernameTextBox.Text = "";
         PasswordBox.Password = "";
@@ -353,38 +397,86 @@ public partial class MainWindow : Window
         }
     }
 
-    private void LoginButton_Click(object sender, RoutedEventArgs e)
+    private async void LoginButton_Click(object sender, RoutedEventArgs e)
     {
         string username = UsernameTextBox.Text.Trim();
         string password = PasswordBox.Password;
 
-        UserRecord? user = _databaseService.GetUserByUsernameAndPassword(username, password);
-
-        if (user == null)
+        if (string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase))
         {
-            MessageTextBlock.Text = App.Language.Get("InvalidCredentials");
-            return;
-        }
-
-        if (user.Role == "admin")
-        {
+            if (!_deviceConfiguration.LocalAdminVerifier.Verify(password))
+            {
+                MessageTextBlock.Text = App.Language.Get("InvalidCredentials");
+                return;
+            }
             OpenAdminPanel();
             return;
         }
 
-        StartSession(user);
+        LoginButton.IsEnabled = false;
+        try
+        {
+            TimelockLoginSession session;
+            try
+            {
+                session = await _timelockApi.LoginAsync(username, password);
+            }
+            catch (HttpRequestException)
+            {
+                session = CreateOfflineSession(username, password);
+            }
+            catch (TaskCanceledException)
+            {
+                session = CreateOfflineSession(username, password);
+            }
+
+            StartSession(session);
+        }
+        catch (TimelockApiException ex)
+        {
+            MessageTextBlock.Text = ex.Code switch
+            {
+                "ACCOUNT_LOCKED" => "บัญชีถูกล็อก 15 นาที เนื่องจากใส่รหัสผ่านผิดหลายครั้ง",
+                "ACCOUNT_ALREADY_ACTIVE" => "บัญชีนี้กำลังใช้งานอยู่บนเครื่องอื่น",
+                _ => App.Language.Get("InvalidCredentials")
+            };
+        }
+        catch
+        {
+            MessageTextBlock.Text = App.Language.Get("InvalidCredentials");
+        }
+        finally
+        {
+            LoginButton.IsEnabled = true;
+        }
     }
 
-    private void StartSession(UserRecord user)
+    private TimelockLoginSession CreateOfflineSession(string username, string password)
+    {
+        TimelockOfflineAccount? account = _offlineCache.Authenticate(
+            username,
+            password,
+            DateTimeOffset.UtcNow);
+        if (account is null) throw new TimelockApiException("CREDENTIALS_INVALID");
+        return new TimelockLoginSession(
+            Guid.NewGuid().ToString(),
+            account.Username,
+            account.AllowedMinutes,
+            DateTimeOffset.UtcNow,
+            IsOffline: true);
+    }
+
+    private void StartSession(TimelockLoginSession session)
     {
         _isSessionActive = true;
         _sessionEnded = false;
 
-        _sessionTotalSeconds = user.AllowedMinutes * 60;
+        _sessionTotalSeconds = session.AllowedMinutes * 60;
         _remainingSeconds = _sessionTotalSeconds;
-        _currentUserId = user.Id;
+        _currentGatewaySession = session;
+        _heartbeatUsername = session.Username;
 
-        _currentSessionId = _databaseService.StartSession(user);
+        _currentSessionId = _databaseService.StartSession(session.Username, session.AllowedMinutes);
 
         Hide();
 
@@ -477,20 +569,39 @@ public partial class MainWindow : Window
             usedSeconds = 0;
         }
 
-        if (_currentSessionId > 0 &&
-            _currentUserId > 0)
+        if (_currentSessionId > 0)
         {
-            _databaseService.EndSessionAndDeactivateUser(
-                _currentSessionId,
-                _currentUserId,
-                usedSeconds,
-                status);
+            _databaseService.EndSession(_currentSessionId, usedSeconds, status);
+        }
+
+        TimelockLoginSession? gatewaySession = _currentGatewaySession;
+        if (gatewaySession is not null)
+        {
+            try
+            {
+                if (gatewaySession.IsOffline)
+                {
+                    await _timelockApi.ReconcileOfflineSessionAsync(
+                        gatewaySession, usedSeconds, status);
+                }
+                else
+                {
+                    await _timelockApi.LogoutAsync(
+                        gatewaySession.SessionId, usedSeconds, status);
+                }
+            }
+            catch
+            {
+                _pendingSessions.Add(new PendingTimelockSession(
+                    gatewaySession, usedSeconds, status));
+            }
         }
 
         _currentSessionId = 0;
-        _currentUserId = 0;
+        _currentGatewaySession = null;
 
         _isSessionActive = false;
+        _heartbeatUsername = null;
 
         if (_usageWindow != null)
         {
@@ -611,6 +722,8 @@ public partial class MainWindow : Window
         _isShuttingDown = true;
         _automaticSyncTimer.Stop();
         _automaticSync.Completed -= AutomaticSync_Completed;
+        _statusReporter.Dispose();
+        _timelockApi.Dispose();
 
         if (_keyboardHook != IntPtr.Zero)
         {

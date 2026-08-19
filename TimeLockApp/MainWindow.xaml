@@ -176,7 +176,7 @@
                     </Grid>
                 </Border>
 
-                <Button Content="{DynamicResource LoginButton}"
+                <Button x:Name="LoginButton" Content="{DynamicResource LoginButton}"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Height="48"
                         FontSize="16"
