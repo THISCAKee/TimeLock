@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     private readonly TimelockPendingSessionStore _pendingSessions = new();
     private readonly TimelockStatusReporter _statusReporter;
     private readonly LowLevelKeyboardProc _keyboardProc;
+    private readonly ApplicationShutdownState _shutdownState = new();
 
     private DispatcherTimer? _timer;
     private UsageWindow? _usageWindow;
@@ -340,7 +341,7 @@ public partial class MainWindow : Window
             MessageBoxButton.OK,
             MessageBoxImage.Error);
 
-        Application.Current.Shutdown(-1);
+        _shutdownState.Request(() => Application.Current.Shutdown(-1));
         return false;
     }
     private void UsernameTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -368,6 +369,7 @@ public partial class MainWindow : Window
         AdminWindow adminWindow = new(
             _databaseService,
             SynchronizeGatewayAsync);
+        adminWindow.Owner = this;
 
         _adminWindow = adminWindow;
 
@@ -390,11 +392,16 @@ public partial class MainWindow : Window
         UsernamePlaceholderTextBlock.Visibility = Visibility.Visible;
         PasswordPlaceholderTextBlock.Visibility = Visibility.Visible;
 
-        if (adminWindow.BackToLoginRequested)
+        if (!_shutdownState.IsRequested)
         {
             Show();
             ActivateLoginWindow();
         }
+    }
+
+    internal void RequestApplicationShutdown()
+    {
+        _shutdownState.Request(Application.Current.Shutdown);
     }
 
     private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -714,7 +721,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        e.Cancel = !_isShuttingDown;
+        e.Cancel = !_shutdownState.IsRequested;
     }
 
     protected override void OnClosed(EventArgs e)

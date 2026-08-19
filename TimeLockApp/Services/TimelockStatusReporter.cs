@@ -20,7 +20,7 @@ internal sealed class TimelockStatusReporter : IDisposable
         _currentUsername = currentUsername;
     }
 
-    internal void Start() => _runTask ??= RunAsync(_stop.Token);
+    internal void Start() => _runTask ??= Task.Run(() => RunAsync(_stop.Token));
 
     private async Task RunAsync(CancellationToken cancellationToken)
     {

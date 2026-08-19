@@ -226,7 +226,7 @@ public partial class AdminWindow : Window
 
     private void ExitButton_Click(object sender, RoutedEventArgs e)
     {
-        Application.Current.Shutdown();
+        RequestApplicationShutdown();
     }
 
     private void UninstallButton_Click(object sender, RoutedEventArgs e)
@@ -248,6 +248,17 @@ public partial class AdminWindow : Window
         {
             MessageTextBlock.Text =
                 App.Language.Get("UninstallFailed", errorMessage);
+            return;
+        }
+
+        RequestApplicationShutdown();
+    }
+
+    private void RequestApplicationShutdown()
+    {
+        if (Owner is MainWindow mainWindow)
+        {
+            mainWindow.RequestApplicationShutdown();
             return;
         }
 
