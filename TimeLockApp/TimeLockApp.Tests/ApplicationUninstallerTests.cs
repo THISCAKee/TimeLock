@@ -42,6 +42,12 @@ static class ApplicationUninstallerTests
         AssertTrue(
             installer.Contains("CreateUninstallRegKey=no", StringComparison.Ordinal),
             "The installer must not expose an Apps & Features uninstall entry.");
+        AssertTrue(
+            installer.Contains("UninstallFilesDir={app}\\.uninstall", StringComparison.Ordinal),
+            "The installer must place uninstaller files in the hidden .uninstall directory.");
+        AssertTrue(
+            installer.Contains("Attribs: hidden", StringComparison.Ordinal),
+            "The installer must mark the uninstaller directory as hidden.");
     }
 
     private static void AdminWindowExposesTheUninstallAction()
@@ -103,12 +109,13 @@ static class ApplicationUninstallerTests
                 "Uninstaller",
                 Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(DirectoryPath);
+            Directory.CreateDirectory(Path.Combine(DirectoryPath, ".uninstall"));
         }
 
         public string DirectoryPath { get; }
 
         public string UninstallerPath =>
-            Path.Combine(DirectoryPath, "unins000.exe");
+            Path.Combine(DirectoryPath, ".uninstall", "unins000.exe");
 
         public void Dispose()
         {

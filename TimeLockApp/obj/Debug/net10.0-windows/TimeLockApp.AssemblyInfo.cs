@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TimeLockApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+648f61526c3a5dd0b469ff6c5f6cd421463928b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51fa310d7e5c8b9c12c3c92c739b2e78d73fdedf")]
 [assembly: System.Reflection.AssemblyProductAttribute("TimeLockApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TimeLockApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

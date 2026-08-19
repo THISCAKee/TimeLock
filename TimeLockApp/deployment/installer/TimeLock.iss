@@ -20,6 +20,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 Uninstallable=yes
 CreateUninstallRegKey=no
+UninstallFilesDir={app}\.uninstall
 OutputDir=output
 OutputBaseFilename=TimeLock-Setup
 Compression=lzma2
@@ -44,6 +45,7 @@ Name: "{commonstartup}\TimeLock"; Filename: "{app}\{#MyAppExeName}"; Tasks: star
 
 [Dirs]
 Name: "{app}\Secrets"
+Name: "{app}\.uninstall"; Attribs: hidden
 
 [Code]
 procedure CurStepChanged(CurStep: TSetupStep);

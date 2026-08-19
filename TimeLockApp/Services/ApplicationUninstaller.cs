@@ -9,6 +9,7 @@ public static class ApplicationUninstaller
     {
         string uninstallerPath = Path.Combine(
             applicationDirectory,
+            ".uninstall",
             "unins000.exe");
 
         return File.Exists(uninstallerPath)

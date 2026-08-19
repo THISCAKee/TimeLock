@@ -2,6 +2,8 @@
 
 This package is a mitigation for a dedicated Windows Standard user. It disables Task Manager for that user and runs a watchdog that reopens TimeLockApp within approximately two seconds. It cannot defeat administrators, `taskkill`, PowerShell, debuggers, or security software.
 
+For a session with no normal Desktop/Explorer, install the separate `deployment\windows-shell` package first. Shell mode replaces Explorer for the current user; this lockdown package only adds the existing Task Manager restriction and watchdog behavior.
+
 ## Recovery first
 
 Keep a separate Windows Administrator account. To remove the lockdown, run `Remove-TimeLockHomeLockdown.ps1` in the configured Standard user's context. If that account cannot run the script, sign in as Administrator, load that user's registry hive for offline repair, restore the two values recorded in `%LOCALAPPDATA%\TimeLockApp\Lockdown\backup.json`, then remove the Run entry and watchdog files.
