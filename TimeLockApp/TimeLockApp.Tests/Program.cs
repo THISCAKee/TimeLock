@@ -19,6 +19,7 @@ tests = tests
     .Concat(ApplicationUninstallerTests.All())
     .Concat(ApplicationShutdownStateTests.All())
     .Concat(TimelockApiClientTests.All())
+    .Concat(MachineEventPollerTests.All())
     .Concat(TimelockStatusReporterTests.All())
     .Concat(ShutdownServiceTests.All())
     .Concat(LanguageServiceTests.All())
