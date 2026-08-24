@@ -18,6 +18,7 @@ var tests = new (string Name, Action Run)[]
 tests = tests
     .Concat(ApplicationUninstallerTests.All())
     .Concat(ApplicationShutdownStateTests.All())
+    .Concat(TimelockApiClientTests.All())
     .Concat(TimelockStatusReporterTests.All())
     .Concat(ShutdownServiceTests.All())
     .Concat(LanguageServiceTests.All())

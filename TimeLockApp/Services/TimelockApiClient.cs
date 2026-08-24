@@ -1,16 +1,20 @@
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace TimeLockApp.Services;
 
-internal sealed class TimelockApiException(string code) : Exception(code)
+internal sealed class TimelockApiException(
+    string code,
+    HttpStatusCode? statusCode = null) : Exception(code)
 {
     internal string Code { get; } = code;
+    internal HttpStatusCode? StatusCode { get; } = statusCode;
 }
 
-internal sealed class TimelockApiClient : IDisposable
+internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
 {
     private readonly HttpClient _http;
     private readonly TimelockDeviceConfiguration _configuration;
@@ -95,14 +99,89 @@ internal sealed class TimelockApiClient : IDisposable
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<TimelockMachineEvent>> GetEventsAsync(
+        int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 20)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        string machineCode = Uri.EscapeDataString(_configuration.MachineCode);
+        using HttpResponseMessage response = await _http.GetAsync(
+            $"api/machines/{machineCode}/events?limit={limit}",
+            cancellationToken);
+        EventsResponse body = await ReadAsync<EventsResponse>(response, cancellationToken);
+        return body.Events;
+    }
+
+    public async Task AcknowledgeEventAsync(
+        string eventId,
+        TimelockEventAcknowledgement acknowledgement,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
+        ArgumentNullException.ThrowIfNull(acknowledgement);
+
+        string escapedEventId = Uri.EscapeDataString(eventId);
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            $"api/machine-events/{escapedEventId}/ack",
+            acknowledgement,
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<TimelockExtensionCheck> CheckExtensionAsync(
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "api/timelock/extension/check",
+            new { sessionId },
+            cancellationToken);
+        DataResponse<TimelockExtensionCheck> body =
+            await ReadAsync<DataResponse<TimelockExtensionCheck>>(response, cancellationToken);
+        return body.Data;
+    }
+
+    public async Task<TimelockExtensionConfirmation> ConfirmExtensionAsync(
+        string sessionId,
+        Guid idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        if (idempotencyKey == Guid.Empty)
+        {
+            throw new ArgumentException("Idempotency key is required.", nameof(idempotencyKey));
+        }
+
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
+            "api/timelock/extension/confirm",
+            new { sessionId, idempotencyKey },
+            cancellationToken);
+        DataResponse<TimelockExtensionConfirmation> body =
+            await ReadAsync<DataResponse<TimelockExtensionConfirmation>>(response, cancellationToken);
+        return body.Data;
+    }
+
     private static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (!response.IsSuccessStatusCode)
         {
             await ThrowApiError(response, cancellationToken);
         }
-        T? value = await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
-        return value ?? throw new TimelockApiException("INVALID_SERVER_RESPONSE");
+        try
+        {
+            T? value = await response.Content.ReadFromJsonAsync<T>(cancellationToken: cancellationToken);
+            return value ?? throw new TimelockApiException("INVALID_SERVER_RESPONSE", response.StatusCode);
+        }
+        catch (JsonException)
+        {
+            throw new TimelockApiException("INVALID_SERVER_RESPONSE", response.StatusCode);
+        }
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -115,11 +194,13 @@ internal sealed class TimelockApiClient : IDisposable
         try
         {
             ApiError? error = await response.Content.ReadFromJsonAsync<ApiError>(cancellationToken: cancellationToken);
-            throw new TimelockApiException(error?.Code ?? "SERVER_REQUEST_FAILED");
+            throw new TimelockApiException(
+                error?.Code ?? "SERVER_REQUEST_FAILED",
+                response.StatusCode);
         }
         catch (JsonException)
         {
-            throw new TimelockApiException("SERVER_REQUEST_FAILED");
+            throw new TimelockApiException("SERVER_REQUEST_FAILED", response.StatusCode);
         }
     }
 
@@ -128,4 +209,6 @@ internal sealed class TimelockApiClient : IDisposable
     private sealed record ApiError([property: JsonPropertyName("code")] string Code);
     private sealed record SyncResponse([property: JsonPropertyName("accounts")] IReadOnlyList<TimelockOfflineAccount> Accounts);
     private sealed record LoginResponse([property: JsonPropertyName("session")] TimelockLoginSession Session);
+    private sealed record EventsResponse([property: JsonPropertyName("events")] IReadOnlyList<TimelockMachineEvent> Events);
+    private sealed record DataResponse<T>([property: JsonPropertyName("data")] T Data);
 }
