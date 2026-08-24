@@ -20,6 +20,8 @@ tests = tests
     .Concat(ApplicationShutdownStateTests.All())
     .Concat(TimelockApiClientTests.All())
     .Concat(MachineEventPollerTests.All())
+    .Concat(SessionExtensionControllerTests.All())
+    .Concat(SessionExpiryCountdownTests.All())
     .Concat(TimelockStatusReporterTests.All())
     .Concat(ShutdownServiceTests.All())
     .Concat(LanguageServiceTests.All())
