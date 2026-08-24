@@ -32,11 +32,14 @@ public partial class MainWindow : Window
     private readonly TimelockOfflineCache _offlineCache = new();
     private readonly TimelockPendingSessionStore _pendingSessions = new();
     private readonly TimelockStatusReporter _statusReporter;
+    private readonly MachineEventPoller _machineEventPoller;
+    private readonly SessionExtensionController _extensionController;
     private readonly LowLevelKeyboardProc _keyboardProc;
     private readonly ApplicationShutdownState _shutdownState = new();
 
     private DispatcherTimer? _timer;
     private UsageWindow? _usageWindow;
+    private SessionExpiredWindow? _sessionExpiredWindow;
     private int _remainingSeconds;
     private bool _isSessionActive;
     private bool _isAlertOpen;
@@ -46,6 +49,7 @@ public partial class MainWindow : Window
     private string? _heartbeatUsername;
     private int _sessionTotalSeconds;
     private bool _sessionEnded;
+    private bool _expiryFlowActive;
     private IntPtr _keyboardHook = IntPtr.Zero;
     private bool _isNetworkAuthOpen;
     private bool _isShutdownConfirmationOpen;
@@ -66,6 +70,8 @@ public partial class MainWindow : Window
             _timelockApi,
             deviceConfiguration,
             () => _heartbeatUsername);
+        _machineEventPoller = new MachineEventPoller(_timelockApi);
+        _extensionController = new SessionExtensionController(_timelockApi);
 
         _keyboardProc = KeyboardHookCallback;
 
@@ -291,6 +297,7 @@ public partial class MainWindow : Window
         }
 
         _statusReporter.Start();
+        _machineEventPoller.Start();
         _automaticSyncTimer.Start();
 
         if (_startupConnectivityChecked)
@@ -524,7 +531,7 @@ public partial class MainWindow : Window
 
     private async void Timer_Tick(object? sender, EventArgs e)
     {
-        if (_isAlertOpen)
+        if (_isAlertOpen || _expiryFlowActive)
         {
             return;
         }
@@ -549,10 +556,174 @@ public partial class MainWindow : Window
 
         if (_remainingSeconds <= 0)
         {
-            await EndSessionAsync(
-                "completed",
-                showExpiredAlert: true);
+            _remainingSeconds = 0;
+            _usageWindow?.UpdateRemainingTime(0);
+            await BeginSessionExpiryAsync();
         }
+    }
+
+    private async Task BeginSessionExpiryAsync()
+    {
+        if (_expiryFlowActive || _sessionEnded)
+        {
+            return;
+        }
+
+        _expiryFlowActive = true;
+        _timer?.Stop();
+
+        TimelockLoginSession? session = _currentGatewaySession;
+        ExtensionEligibilityResult eligibility;
+        if (session is null || session.IsOffline)
+        {
+            eligibility = new ExtensionEligibilityResult(
+                false,
+                "EXTENSION_CHECK_UNAVAILABLE");
+        }
+        else
+        {
+            try
+            {
+                eligibility = await _extensionController.BeginExpiryAsync(
+                    session.SessionId);
+            }
+            catch
+            {
+                _extensionController.CompleteExpiry();
+                eligibility = new ExtensionEligibilityResult(
+                    false,
+                    "EXTENSION_CHECK_UNAVAILABLE");
+            }
+        }
+
+        if (_sessionEnded)
+        {
+            _extensionController.CompleteExpiry();
+            _expiryFlowActive = false;
+            return;
+        }
+
+        SessionExpiredWindow window = new(eligibility)
+        {
+            Owner = (Window?)_usageWindow ?? this
+        };
+        _sessionExpiredWindow = window;
+        window.ExtensionRequested += SessionExpiredWindow_ExtensionRequested;
+        window.LogoutRequested += SessionExpiredWindow_LogoutRequested;
+
+        try
+        {
+            window.ShowDialog();
+        }
+        finally
+        {
+            window.ExtensionRequested -= SessionExpiredWindow_ExtensionRequested;
+            window.LogoutRequested -= SessionExpiredWindow_LogoutRequested;
+            if (ReferenceEquals(_sessionExpiredWindow, window))
+            {
+                _sessionExpiredWindow = null;
+            }
+        }
+    }
+
+    private async void SessionExpiredWindow_ExtensionRequested(
+        object? sender,
+        EventArgs e)
+    {
+        if (sender is not SessionExpiredWindow window ||
+            !ReferenceEquals(window, _sessionExpiredWindow) ||
+            _sessionEnded)
+        {
+            return;
+        }
+
+        ExtensionConfirmationResult result;
+        try
+        {
+            result = await _extensionController.ConfirmAsync();
+        }
+        catch
+        {
+            result = new ExtensionConfirmationResult(
+                ExtensionConfirmOutcome.RetryableFailure,
+                null,
+                "EXTENSION_CONFIRM_UNAVAILABLE");
+        }
+
+        if (_sessionEnded || !ReferenceEquals(window, _sessionExpiredWindow))
+        {
+            return;
+        }
+
+        if (result.Outcome == ExtensionConfirmOutcome.RetryableFailure)
+        {
+            window.ShowRetryableError();
+            return;
+        }
+
+        if (result.Outcome == ExtensionConfirmOutcome.Extended &&
+            result.Confirmation is not null)
+        {
+            try
+            {
+                SessionTime time = SessionTime.FromExtension(
+                    result.Confirmation,
+                    DateTimeOffset.UtcNow);
+                if (time.RemainingSeconds > 0)
+                {
+                    if (_currentSessionId > 0)
+                    {
+                        _databaseService.UpdateSessionAllowance(
+                            _currentSessionId,
+                            result.Confirmation.AllowedMinutes);
+                    }
+                    _remainingSeconds = time.RemainingSeconds;
+                    _sessionTotalSeconds = time.TotalAllowedSeconds;
+                    if (_currentGatewaySession is not null)
+                    {
+                        _currentGatewaySession = _currentGatewaySession with
+                        {
+                            AllowedMinutes = result.Confirmation.AllowedMinutes
+                        };
+                    }
+                    _usageWindow?.UpdateRemainingTime(_remainingSeconds);
+                    _expiryFlowActive = false;
+                    window.CloseAfterExtension();
+                    _timer?.Start();
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                // A malformed response or local accounting failure is fail-closed.
+            }
+
+            result = new ExtensionConfirmationResult(
+                ExtensionConfirmOutcome.Rejected,
+                null,
+                "INVALID_SERVER_RESPONSE");
+        }
+
+        string errorMessage = SessionExpiredWindow.ExtensionReasonText(
+            result.ErrorCode ?? "EXTENSION_CHECK_UNAVAILABLE");
+        window.CloseForLogout();
+        _expiryFlowActive = false;
+        await EndSessionAsync("completed", showExpiredAlert: false);
+        ShowBlockingAlert(App.Language.Get("TimeExpiredTitle"), errorMessage);
+    }
+
+    private async void SessionExpiredWindow_LogoutRequested(
+        object? sender,
+        EventArgs e)
+    {
+        if (sender is SessionExpiredWindow window &&
+            ReferenceEquals(window, _sessionExpiredWindow))
+        {
+            window.CloseForLogout();
+        }
+        _extensionController.CompleteExpiry();
+        _expiryFlowActive = false;
+        await EndSessionAsync("completed", showExpiredAlert: false);
     }
 
     private async Task EndSessionAsync(
@@ -565,6 +736,10 @@ public partial class MainWindow : Window
         }
 
         _sessionEnded = true;
+
+        _extensionController.CompleteExpiry();
+        _expiryFlowActive = false;
+        _sessionExpiredWindow?.CloseForLogout();
 
         _timer?.Stop();
         _timer = null;
@@ -722,6 +897,10 @@ public partial class MainWindow : Window
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
         e.Cancel = !_shutdownState.IsRequested;
+        if (!e.Cancel)
+        {
+            _sessionExpiredWindow?.CloseForLogout();
+        }
     }
 
     protected override void OnClosed(EventArgs e)
@@ -729,6 +908,7 @@ public partial class MainWindow : Window
         _isShuttingDown = true;
         _automaticSyncTimer.Stop();
         _automaticSync.Completed -= AutomaticSync_Completed;
+        _machineEventPoller.Dispose();
         _statusReporter.Dispose();
         _timelockApi.Dispose();
 

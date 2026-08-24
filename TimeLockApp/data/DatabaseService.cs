@@ -154,6 +154,36 @@ public class DatabaseService
         return (int)(long)command.ExecuteScalar()!;
     }
 
+    public void UpdateSessionAllowance(int sessionId, int allowedMinutes)
+    {
+        if (sessionId <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sessionId));
+        }
+        if (allowedMinutes <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(allowedMinutes));
+        }
+
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+        const string sql = """
+        UPDATE sessions
+        SET allowed_minutes = $allowed_minutes
+        WHERE id = $session_id
+          AND status = 'active';
+        """;
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$session_id", sessionId);
+        command.Parameters.AddWithValue("$allowed_minutes", allowedMinutes);
+        if (command.ExecuteNonQuery() != 1)
+        {
+            throw new InvalidOperationException(
+                "The active session allowance could not be updated.");
+        }
+    }
+
     public void EndSession(int sessionId, int usedSeconds, string status)
     {
         using var connection = new SqliteConnection(_connectionString);

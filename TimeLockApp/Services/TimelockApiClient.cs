@@ -113,7 +113,9 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             $"api/machines/{machineCode}/events?limit={limit}",
             cancellationToken);
         EventsResponse body = await ReadAsync<EventsResponse>(response, cancellationToken);
-        return body.Events;
+        return body.Events ?? throw new TimelockApiException(
+            "INVALID_SERVER_RESPONSE",
+            response.StatusCode);
     }
 
     public async Task AcknowledgeEventAsync(
@@ -144,7 +146,9 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             cancellationToken);
         DataResponse<TimelockExtensionCheck> body =
             await ReadAsync<DataResponse<TimelockExtensionCheck>>(response, cancellationToken);
-        return body.Data;
+        return body.Data ?? throw new TimelockApiException(
+            "INVALID_SERVER_RESPONSE",
+            response.StatusCode);
     }
 
     public async Task<TimelockExtensionConfirmation> ConfirmExtensionAsync(
@@ -164,7 +168,9 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             cancellationToken);
         DataResponse<TimelockExtensionConfirmation> body =
             await ReadAsync<DataResponse<TimelockExtensionConfirmation>>(response, cancellationToken);
-        return body.Data;
+        return body.Data ?? throw new TimelockApiException(
+            "INVALID_SERVER_RESPONSE",
+            response.StatusCode);
     }
 
     private static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -209,6 +215,7 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
     private sealed record ApiError([property: JsonPropertyName("code")] string Code);
     private sealed record SyncResponse([property: JsonPropertyName("accounts")] IReadOnlyList<TimelockOfflineAccount> Accounts);
     private sealed record LoginResponse([property: JsonPropertyName("session")] TimelockLoginSession Session);
-    private sealed record EventsResponse([property: JsonPropertyName("events")] IReadOnlyList<TimelockMachineEvent> Events);
-    private sealed record DataResponse<T>([property: JsonPropertyName("data")] T Data);
+    private sealed record EventsResponse([property: JsonPropertyName("events")] IReadOnlyList<TimelockMachineEvent>? Events);
+    private sealed record DataResponse<T>([property: JsonPropertyName("data")] T? Data)
+        where T : class;
 }

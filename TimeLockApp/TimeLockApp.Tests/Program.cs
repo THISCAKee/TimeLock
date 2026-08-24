@@ -22,6 +22,8 @@ tests = tests
     .Concat(MachineEventPollerTests.All())
     .Concat(SessionExtensionControllerTests.All())
     .Concat(SessionExpiryCountdownTests.All())
+    .Concat(SessionTimeTests.All())
+    .Concat(DatabaseSessionExtensionTests.All())
     .Concat(TimelockStatusReporterTests.All())
     .Concat(ShutdownServiceTests.All())
     .Concat(LanguageServiceTests.All())

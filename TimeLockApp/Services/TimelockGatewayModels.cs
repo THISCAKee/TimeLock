@@ -107,3 +107,30 @@ public sealed record TimelockLoginSession(
     [property: JsonPropertyName("allowedMinutes")] int AllowedMinutes,
     [property: JsonPropertyName("startedAt")] DateTimeOffset StartedAt,
     bool IsOffline = false);
+
+internal sealed record SessionTime(
+    int RemainingSeconds,
+    int TotalAllowedSeconds)
+{
+    internal static SessionTime FromExtension(
+        TimelockExtensionConfirmation confirmation,
+        DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(confirmation);
+        if (confirmation.AllowedMinutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(confirmation),
+                "Server allowed minutes cannot be negative.");
+        }
+
+        double remaining = Math.Ceiling((confirmation.EndAt - now).TotalSeconds);
+        int remainingSeconds = remaining <= 0
+            ? 0
+            : remaining >= int.MaxValue
+                ? int.MaxValue
+                : (int)remaining;
+        int totalAllowedSeconds = checked(confirmation.AllowedMinutes * 60);
+        return new SessionTime(remainingSeconds, totalAllowedSeconds);
+    }
+}

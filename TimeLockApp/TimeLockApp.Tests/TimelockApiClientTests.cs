@@ -14,6 +14,7 @@ internal static class TimelockApiClientTests
         yield return ("extension confirmation sends idempotency key and reads server values", ConfirmationUsesIdempotencyKeyAndServerValues);
         yield return ("machine API exposes server error code and status", ServerErrorPreservesCodeAndStatus);
         yield return ("machine API rejects invalid JSON", InvalidJsonIsRejected);
+        yield return ("machine API rejects a missing response envelope", MissingEnvelopeIsRejected);
     }
 
     private static void GetEventsUsesScopedEndpointAndHeaders()
@@ -108,6 +109,17 @@ internal static class TimelockApiClientTests
             client.GetEventsAsync().GetAwaiter().GetResult());
 
         AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "Invalid JSON must have a stable safe code.");
+    }
+
+    private static void MissingEnvelopeIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, "{\"ok\":true}");
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.GetEventsAsync().GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "A missing events collection must be rejected.");
     }
 
     private static TimelockApiClient CreateClient(RecordingHandler handler, string machineCode = "PC-001") =>
