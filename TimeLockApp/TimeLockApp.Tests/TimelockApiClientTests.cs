@@ -15,6 +15,10 @@ internal static class TimelockApiClientTests
         yield return ("machine API exposes server error code and status", ServerErrorPreservesCodeAndStatus);
         yield return ("machine API rejects invalid JSON", InvalidJsonIsRejected);
         yield return ("machine API rejects a missing response envelope", MissingEnvelopeIsRejected);
+        yield return ("machine API rejects an event missing its start time", MissingEventStartIsRejected);
+        yield return ("machine API rejects an unsuccessful extension envelope", UnsuccessfulExtensionEnvelopeIsRejected);
+        yield return ("machine API rejects extension eligibility without a reason", EligibilityWithoutReasonIsRejected);
+        yield return ("machine API rejects confirmation without a booking id", ConfirmationWithoutBookingIsRejected);
     }
 
     private static void GetEventsUsesScopedEndpointAndHeaders()
@@ -120,6 +124,58 @@ internal static class TimelockApiClientTests
             client.GetEventsAsync().GetAwaiter().GetResult());
 
         AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "A missing events collection must be rejected.");
+    }
+
+    private static void MissingEventStartIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, """
+            {"events":[{"eventId":"event-id","eventType":"booking_confirmed","bookingId":"booking-id","bookingNumber":"BK-1","machineCode":"PC-001","endAt":"2026-08-20T12:00:00+07:00","username":"booking_0001","password":"secret"}]}
+            """);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.GetEventsAsync().GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "Missing event timestamps must be rejected.");
+    }
+
+    private static void UnsuccessfulExtensionEnvelopeIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, """
+            {"ok":false,"data":{"canExtend":true,"reason":"EXTENSION_AVAILABLE","currentEndAt":"2026-08-24T04:30:00Z","proposedEndAt":"2026-08-24T07:30:00Z","extensionCount":0,"maxExtensionCount":2}}
+            """);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.CheckExtensionAsync("session-id").GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "ok=false must not be treated as success.");
+    }
+
+    private static void EligibilityWithoutReasonIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, """
+            {"ok":true,"data":{"canExtend":false,"currentEndAt":"2026-08-24T04:30:00Z","proposedEndAt":null,"extensionCount":0,"maxExtensionCount":2}}
+            """);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.CheckExtensionAsync("session-id").GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "Eligibility reason is required.");
+    }
+
+    private static void ConfirmationWithoutBookingIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, """
+            {"ok":true,"data":{"endAt":"2026-08-24T07:30:00Z","extensionCount":1,"allowedMinutes":360}}
+            """);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.ConfirmExtensionAsync("session-id", Guid.NewGuid()).GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "Confirmation booking id is required.");
     }
 
     private static TimelockApiClient CreateClient(RecordingHandler handler, string machineCode = "PC-001") =>

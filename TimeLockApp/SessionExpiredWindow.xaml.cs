@@ -110,9 +110,8 @@ public partial class SessionExpiredWindow : Window
 
     private void UpdateCountdownText()
     {
-        CountdownTextBlock.Text = App.Language.Get(
-            "SessionExpiredCountdown",
-            _countdown.RemainingSeconds);
+        int remaining = _countdown.RemainingSeconds;
+        CountdownTextBlock.Text = $"{remaining / 60:00}:{remaining % 60:00}";
     }
 
     private void CloseFromCode()

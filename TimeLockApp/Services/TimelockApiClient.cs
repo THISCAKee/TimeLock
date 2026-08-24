@@ -113,9 +113,13 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             $"api/machines/{machineCode}/events?limit={limit}",
             cancellationToken);
         EventsResponse body = await ReadAsync<EventsResponse>(response, cancellationToken);
-        return body.Events ?? throw new TimelockApiException(
-            "INVALID_SERVER_RESPONSE",
-            response.StatusCode);
+        IReadOnlyList<TimelockMachineEvent> events = body.Events ??
+            throw InvalidResponse(response.StatusCode);
+        if (events.Any(machineEvent => !IsValid(machineEvent)))
+        {
+            throw InvalidResponse(response.StatusCode);
+        }
+        return events;
     }
 
     public async Task AcknowledgeEventAsync(
@@ -146,9 +150,13 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             cancellationToken);
         DataResponse<TimelockExtensionCheck> body =
             await ReadAsync<DataResponse<TimelockExtensionCheck>>(response, cancellationToken);
-        return body.Data ?? throw new TimelockApiException(
-            "INVALID_SERVER_RESPONSE",
-            response.StatusCode);
+        TimelockExtensionCheck check = body.Data ??
+            throw InvalidResponse(response.StatusCode);
+        if (!body.Ok || !IsValid(check))
+        {
+            throw InvalidResponse(response.StatusCode);
+        }
+        return check;
     }
 
     public async Task<TimelockExtensionConfirmation> ConfirmExtensionAsync(
@@ -168,10 +176,46 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             cancellationToken);
         DataResponse<TimelockExtensionConfirmation> body =
             await ReadAsync<DataResponse<TimelockExtensionConfirmation>>(response, cancellationToken);
-        return body.Data ?? throw new TimelockApiException(
-            "INVALID_SERVER_RESPONSE",
-            response.StatusCode);
+        TimelockExtensionConfirmation confirmation = body.Data ??
+            throw InvalidResponse(response.StatusCode);
+        if (!body.Ok || !IsValid(confirmation))
+        {
+            throw InvalidResponse(response.StatusCode);
+        }
+        return confirmation;
     }
+
+    private static bool IsValid(TimelockMachineEvent machineEvent) =>
+        machineEvent is not null &&
+        !string.IsNullOrWhiteSpace(machineEvent.EventId) &&
+        !string.IsNullOrWhiteSpace(machineEvent.EventType) &&
+        !string.IsNullOrWhiteSpace(machineEvent.BookingId) &&
+        !string.IsNullOrWhiteSpace(machineEvent.BookingNumber) &&
+        !string.IsNullOrWhiteSpace(machineEvent.MachineCode) &&
+        !string.IsNullOrWhiteSpace(machineEvent.Username) &&
+        !string.IsNullOrWhiteSpace(machineEvent.Password) &&
+        machineEvent.StartAt != default &&
+        machineEvent.EndAt != default &&
+        machineEvent.EndAt > machineEvent.StartAt;
+
+    private static bool IsValid(TimelockExtensionCheck check) =>
+        !string.IsNullOrWhiteSpace(check.Reason) &&
+        check.CurrentEndAt != default &&
+        check.ExtensionCount >= 0 &&
+        check.MaxExtensionCount >= check.ExtensionCount &&
+        (check.CanExtend
+            ? check.ProposedEndAt is not null &&
+              check.ProposedEndAt > check.CurrentEndAt
+            : check.ProposedEndAt is null);
+
+    private static bool IsValid(TimelockExtensionConfirmation confirmation) =>
+        !string.IsNullOrWhiteSpace(confirmation.BookingId) &&
+        confirmation.EndAt != default &&
+        confirmation.ExtensionCount >= 0 &&
+        confirmation.AllowedMinutes > 0;
+
+    private static TimelockApiException InvalidResponse(HttpStatusCode statusCode) =>
+        new("INVALID_SERVER_RESPONSE", statusCode);
 
     private static async Task<T> ReadAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
@@ -216,6 +260,8 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
     private sealed record SyncResponse([property: JsonPropertyName("accounts")] IReadOnlyList<TimelockOfflineAccount> Accounts);
     private sealed record LoginResponse([property: JsonPropertyName("session")] TimelockLoginSession Session);
     private sealed record EventsResponse([property: JsonPropertyName("events")] IReadOnlyList<TimelockMachineEvent>? Events);
-    private sealed record DataResponse<T>([property: JsonPropertyName("data")] T? Data)
+    private sealed record DataResponse<T>(
+        [property: JsonPropertyName("ok")] bool Ok,
+        [property: JsonPropertyName("data")] T? Data)
         where T : class;
 }

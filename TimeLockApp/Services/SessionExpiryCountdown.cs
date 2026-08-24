@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace TimeLockApp.Services;
 
 internal enum SessionExpiryAction
@@ -10,32 +12,50 @@ internal sealed class SessionExpiryCountdown
 {
     private bool _terminal;
     private bool _extensionPending;
+    private readonly TimeSpan _duration;
+    private readonly Func<TimeSpan> _elapsed;
 
-    internal SessionExpiryCountdown(int seconds = 60)
+    internal SessionExpiryCountdown(
+        int seconds = 60,
+        Func<TimeSpan>? elapsed = null)
     {
         if (seconds <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(seconds));
         }
-        RemainingSeconds = seconds;
+        _duration = TimeSpan.FromSeconds(seconds);
+        if (elapsed is null)
+        {
+            long startedAt = Stopwatch.GetTimestamp();
+            _elapsed = () => Stopwatch.GetElapsedTime(startedAt);
+        }
+        else
+        {
+            _elapsed = elapsed;
+        }
     }
 
-    internal int RemainingSeconds { get; private set; }
+    internal int RemainingSeconds
+    {
+        get
+        {
+            double seconds = Math.Ceiling((_duration - _elapsed()).TotalSeconds);
+            return seconds <= 0 ? 0 : (int)Math.Min(seconds, int.MaxValue);
+        }
+    }
 
     internal SessionExpiryAction Tick()
     {
-        if (_terminal || _extensionPending)
+        if (_terminal)
         {
             return SessionExpiryAction.None;
         }
 
-        RemainingSeconds--;
         if (RemainingSeconds > 0)
         {
             return SessionExpiryAction.None;
         }
 
-        RemainingSeconds = 0;
         _terminal = true;
         return SessionExpiryAction.Logout;
     }

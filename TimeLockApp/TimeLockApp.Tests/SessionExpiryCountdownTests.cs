@@ -6,19 +6,19 @@ internal static class SessionExpiryCountdownTests
     {
         yield return ("expiry countdown logs out on sixtieth tick", LogsOutOnSixtiethTick);
         yield return ("expiry countdown emits one terminal action", EmitsOneTerminalAction);
-        yield return ("extension attempt pauses and retry resumes countdown", ExtensionAttemptPausesAndRetryResumes);
+        yield return ("extension attempt does not extend expiry deadline", ExtensionAttemptDoesNotExtendDeadline);
     }
 
     private static void LogsOutOnSixtiethTick()
     {
-        SessionExpiryCountdown countdown = new(60);
+        TimeSpan elapsed = TimeSpan.Zero;
+        SessionExpiryCountdown countdown = new(60, () => elapsed);
 
-        for (int second = 1; second < 60; second++)
-        {
-            AssertTrue(countdown.Tick() == SessionExpiryAction.None, "Countdown must not end early.");
-        }
+        elapsed = TimeSpan.FromSeconds(59);
+        AssertTrue(countdown.Tick() == SessionExpiryAction.None, "Countdown must not end early.");
 
         AssertTrue(countdown.RemainingSeconds == 1, "One second must remain before the terminal tick.");
+        elapsed = TimeSpan.FromSeconds(60);
         AssertTrue(countdown.Tick() == SessionExpiryAction.Logout, "The sixtieth tick must force logout.");
     }
 
@@ -31,18 +31,16 @@ internal static class SessionExpiryCountdownTests
         AssertTrue(countdown.SelectLogout() == SessionExpiryAction.None, "Logout must be emitted once.");
     }
 
-    private static void ExtensionAttemptPausesAndRetryResumes()
+    private static void ExtensionAttemptDoesNotExtendDeadline()
     {
-        SessionExpiryCountdown countdown = new(60);
-        countdown.Tick();
+        TimeSpan elapsed = TimeSpan.Zero;
+        SessionExpiryCountdown countdown = new(60, () => elapsed);
 
         AssertTrue(countdown.TryBeginExtension(), "First extension click must start an attempt.");
-        AssertTrue(countdown.Tick() == SessionExpiryAction.None, "Timer must pause while confirmation is pending.");
-        AssertTrue(countdown.RemainingSeconds == 59, "Pending confirmation must not consume popup time.");
-        countdown.AllowExtensionRetry();
-        AssertTrue(countdown.Tick() == SessionExpiryAction.None, "Countdown must resume after a retryable failure.");
-        AssertTrue(countdown.RemainingSeconds == 58, "Resumed countdown must continue from its prior value.");
-        AssertTrue(countdown.TryBeginExtension(), "Retry must be selectable again.");
+        elapsed = TimeSpan.FromSeconds(60);
+
+        AssertTrue(countdown.Tick() == SessionExpiryAction.Logout, "Pending confirmation must not extend the deadline.");
+        AssertTrue(countdown.RemainingSeconds == 0, "Deadline must be monotonic and authoritative.");
     }
 
     private static void AssertTrue(bool condition, string message)

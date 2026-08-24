@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     private DispatcherTimer? _timer;
     private UsageWindow? _usageWindow;
     private SessionExpiredWindow? _sessionExpiredWindow;
+    private CancellationTokenSource? _extensionConfirmationCancellation;
     private int _remainingSeconds;
     private bool _isSessionActive;
     private bool _isAlertOpen;
@@ -608,6 +609,9 @@ public partial class MainWindow : Window
             Owner = (Window?)_usageWindow ?? this
         };
         _sessionExpiredWindow = window;
+        CancellationTokenSource confirmationCancellation = new();
+        _extensionConfirmationCancellation = confirmationCancellation;
+        _isAlertOpen = true;
         window.ExtensionRequested += SessionExpiredWindow_ExtensionRequested;
         window.LogoutRequested += SessionExpiredWindow_LogoutRequested;
 
@@ -623,6 +627,14 @@ public partial class MainWindow : Window
             {
                 _sessionExpiredWindow = null;
             }
+            if (ReferenceEquals(
+                    _extensionConfirmationCancellation,
+                    confirmationCancellation))
+            {
+                _extensionConfirmationCancellation = null;
+                confirmationCancellation.Dispose();
+            }
+            _isAlertOpen = false;
         }
     }
 
@@ -640,7 +652,10 @@ public partial class MainWindow : Window
         ExtensionConfirmationResult result;
         try
         {
-            result = await _extensionController.ConfirmAsync();
+            CancellationToken cancellationToken =
+                _extensionConfirmationCancellation?.Token ??
+                CancellationToken.None;
+            result = await _extensionController.ConfirmAsync(cancellationToken);
         }
         catch
         {
@@ -716,6 +731,7 @@ public partial class MainWindow : Window
         object? sender,
         EventArgs e)
     {
+        _extensionConfirmationCancellation?.Cancel();
         if (sender is SessionExpiredWindow window &&
             ReferenceEquals(window, _sessionExpiredWindow))
         {
@@ -739,6 +755,7 @@ public partial class MainWindow : Window
 
         _extensionController.CompleteExpiry();
         _expiryFlowActive = false;
+        _extensionConfirmationCancellation?.Cancel();
         _sessionExpiredWindow?.CloseForLogout();
 
         _timer?.Stop();
