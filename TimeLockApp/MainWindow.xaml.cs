@@ -684,7 +684,7 @@ public partial class MainWindow : Window
                 SessionTime time = SessionTime.FromExtension(
                     result.Confirmation,
                     DateTimeOffset.UtcNow);
-                if (time.RemainingSeconds > 0)
+                if (time.RemainingSeconds > 0 && window.TryClaimExtension())
                 {
                     if (_currentSessionId > 0)
                     {

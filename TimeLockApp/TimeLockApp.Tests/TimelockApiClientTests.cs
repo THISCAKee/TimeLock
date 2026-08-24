@@ -19,6 +19,10 @@ internal static class TimelockApiClientTests
         yield return ("machine API rejects an unsuccessful extension envelope", UnsuccessfulExtensionEnvelopeIsRejected);
         yield return ("machine API rejects extension eligibility without a reason", EligibilityWithoutReasonIsRejected);
         yield return ("machine API rejects confirmation without a booking id", ConfirmationWithoutBookingIsRejected);
+        yield return ("machine API rejects eligibility without canExtend", EligibilityWithoutCanExtendIsRejected);
+        yield return ("machine API rejects eligibility without extension count", EligibilityWithoutExtensionCountIsRejected);
+        yield return ("machine API rejects eligibility without max extension count", EligibilityWithoutMaxCountIsRejected);
+        yield return ("machine API rejects confirmation without extension count", ConfirmationWithoutExtensionCountIsRejected);
     }
 
     private static void GetEventsUsesScopedEndpointAndHeaders()
@@ -176,6 +180,45 @@ internal static class TimelockApiClientTests
             client.ConfirmExtensionAsync("session-id", Guid.NewGuid()).GetAwaiter().GetResult());
 
         AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "Confirmation booking id is required.");
+    }
+
+    private static void EligibilityWithoutCanExtendIsRejected() =>
+        AssertInvalidCheck("""
+            {"ok":true,"data":{"reason":"EXTENSION_LIMIT_REACHED","currentEndAt":"2026-08-24T04:30:00Z","proposedEndAt":null,"extensionCount":0,"maxExtensionCount":2}}
+            """, "canExtend is required.");
+
+    private static void EligibilityWithoutExtensionCountIsRejected() =>
+        AssertInvalidCheck("""
+            {"ok":true,"data":{"canExtend":false,"reason":"EXTENSION_LIMIT_REACHED","currentEndAt":"2026-08-24T04:30:00Z","proposedEndAt":null,"maxExtensionCount":2}}
+            """, "extensionCount is required.");
+
+    private static void EligibilityWithoutMaxCountIsRejected() =>
+        AssertInvalidCheck("""
+            {"ok":true,"data":{"canExtend":false,"reason":"EXTENSION_LIMIT_REACHED","currentEndAt":"2026-08-24T04:30:00Z","proposedEndAt":null,"extensionCount":0}}
+            """, "maxExtensionCount is required.");
+
+    private static void ConfirmationWithoutExtensionCountIsRejected()
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, """
+            {"ok":true,"data":{"bookingId":"booking-id","endAt":"2026-08-24T07:30:00Z","allowedMinutes":360}}
+            """);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.ConfirmExtensionAsync("session-id", Guid.NewGuid()).GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", "extensionCount is required.");
+    }
+
+    private static void AssertInvalidCheck(string responseBody, string message)
+    {
+        RecordingHandler handler = RecordingHandler.Json(HttpStatusCode.OK, responseBody);
+        using TimelockApiClient client = CreateClient(handler);
+
+        TimelockApiException error = AssertThrows<TimelockApiException>(() =>
+            client.CheckExtensionAsync("session-id").GetAwaiter().GetResult());
+
+        AssertTrue(error.Code == "INVALID_SERVER_RESPONSE", message);
     }
 
     private static TimelockApiClient CreateClient(RecordingHandler handler, string machineCode = "PC-001") =>

@@ -79,10 +79,16 @@ internal sealed class SessionExpiryCountdown
         }
     }
 
-    internal void CompleteExtension()
+    internal bool TryCompleteExtension()
     {
+        if (_terminal || !_extensionPending || RemainingSeconds <= 0)
+        {
+            return false;
+        }
+
         _extensionPending = false;
         _terminal = true;
+        return true;
     }
 
     internal SessionExpiryAction SelectLogout()

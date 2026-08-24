@@ -148,14 +148,26 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             "api/timelock/extension/check",
             new { sessionId },
             cancellationToken);
-        DataResponse<TimelockExtensionCheck> body =
-            await ReadAsync<DataResponse<TimelockExtensionCheck>>(response, cancellationToken);
-        TimelockExtensionCheck check = body.Data ??
+        DataResponse<ExtensionCheckWire> body =
+            await ReadAsync<DataResponse<ExtensionCheckWire>>(response, cancellationToken);
+        ExtensionCheckWire wire = body.Data ??
             throw InvalidResponse(response.StatusCode);
-        if (!body.Ok || !IsValid(check))
+        if (body.Ok != true ||
+            wire.CanExtend is null ||
+            wire.CurrentEndAt is null ||
+            wire.ExtensionCount is null ||
+            wire.MaxExtensionCount is null)
         {
             throw InvalidResponse(response.StatusCode);
         }
+        TimelockExtensionCheck check = new(
+            wire.CanExtend.Value,
+            wire.Reason ?? "",
+            wire.CurrentEndAt.Value,
+            wire.ProposedEndAt,
+            wire.ExtensionCount.Value,
+            wire.MaxExtensionCount.Value);
+        if (!IsValid(check)) throw InvalidResponse(response.StatusCode);
         return check;
     }
 
@@ -174,14 +186,23 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
             "api/timelock/extension/confirm",
             new { sessionId, idempotencyKey },
             cancellationToken);
-        DataResponse<TimelockExtensionConfirmation> body =
-            await ReadAsync<DataResponse<TimelockExtensionConfirmation>>(response, cancellationToken);
-        TimelockExtensionConfirmation confirmation = body.Data ??
+        DataResponse<ExtensionConfirmationWire> body =
+            await ReadAsync<DataResponse<ExtensionConfirmationWire>>(response, cancellationToken);
+        ExtensionConfirmationWire wire = body.Data ??
             throw InvalidResponse(response.StatusCode);
-        if (!body.Ok || !IsValid(confirmation))
+        if (body.Ok != true ||
+            wire.EndAt is null ||
+            wire.ExtensionCount is null ||
+            wire.AllowedMinutes is null)
         {
             throw InvalidResponse(response.StatusCode);
         }
+        TimelockExtensionConfirmation confirmation = new(
+            wire.BookingId ?? "",
+            wire.EndAt.Value,
+            wire.ExtensionCount.Value,
+            wire.AllowedMinutes.Value);
+        if (!IsValid(confirmation)) throw InvalidResponse(response.StatusCode);
         return confirmation;
     }
 
@@ -261,7 +282,19 @@ internal sealed class TimelockApiClient : ITimelockMachineApi, IDisposable
     private sealed record LoginResponse([property: JsonPropertyName("session")] TimelockLoginSession Session);
     private sealed record EventsResponse([property: JsonPropertyName("events")] IReadOnlyList<TimelockMachineEvent>? Events);
     private sealed record DataResponse<T>(
-        [property: JsonPropertyName("ok")] bool Ok,
+        [property: JsonPropertyName("ok")] bool? Ok,
         [property: JsonPropertyName("data")] T? Data)
         where T : class;
+    private sealed record ExtensionCheckWire(
+        [property: JsonPropertyName("canExtend")] bool? CanExtend,
+        [property: JsonPropertyName("reason")] string? Reason,
+        [property: JsonPropertyName("currentEndAt")] DateTimeOffset? CurrentEndAt,
+        [property: JsonPropertyName("proposedEndAt")] DateTimeOffset? ProposedEndAt,
+        [property: JsonPropertyName("extensionCount")] int? ExtensionCount,
+        [property: JsonPropertyName("maxExtensionCount")] int? MaxExtensionCount);
+    private sealed record ExtensionConfirmationWire(
+        [property: JsonPropertyName("bookingId")] string? BookingId,
+        [property: JsonPropertyName("endAt")] DateTimeOffset? EndAt,
+        [property: JsonPropertyName("extensionCount")] int? ExtensionCount,
+        [property: JsonPropertyName("allowedMinutes")] int? AllowedMinutes);
 }

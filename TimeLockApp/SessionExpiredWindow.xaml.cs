@@ -56,11 +56,9 @@ public partial class SessionExpiredWindow : Window
         SetConfirmationPending(false);
     }
 
-    internal void CloseAfterExtension()
-    {
-        _countdown.CompleteExtension();
-        CloseFromCode();
-    }
+    internal bool TryClaimExtension() => _countdown.TryCompleteExtension();
+
+    internal void CloseAfterExtension() => CloseFromCode();
 
     internal void CloseForLogout() => CloseFromCode();
 
