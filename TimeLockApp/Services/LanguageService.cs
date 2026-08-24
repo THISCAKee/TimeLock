@@ -138,6 +138,17 @@ public sealed class LanguageService
             ["SheetMinutesInvalid"] = "แถวที่ {0}: AllowedMinutes ต้องเป็นเลขตั้งแต่ 0 ขึ้นไป",
             ["SheetRoleInvalid"] = "แถวที่ {0}: Role ต้องเป็น user หรือ admin",
             ["SheetActiveInvalid"] = "แถวที่ {0}: IsActive ต้องเป็น TRUE หรือ FALSE",
+            ["SessionExpiredHeading"] = "หมดเวลาใช้งาน",
+            ["SessionExpiredCountdown"] = "กรุณาเลือกภายใน {0} วินาที",
+            ["ExtendThreeHours"] = "ต่อเวลา 3 ชั่วโมง",
+            ["ExtensionChecking"] = "กำลังตรวจสอบการต่อเวลา...",
+            ["ExtensionRetry"] = "เชื่อมต่อไม่สำเร็จ กรุณาลองต่อเวลาอีกครั้ง",
+            ["ExtensionLimitReached"] = "ใช้สิทธิ์ต่อเวลาครบแล้ว",
+            ["ExtensionCrossesMidnight"] = "เวลาใหม่จะข้ามวันหรือเหลือเวลาไม่ครบ 3 ชั่วโมง",
+            ["ExtensionNextBookingConflict"] = "มีคิวจองถัดไป จึงไม่สามารถต่อเวลาได้",
+            ["ExtensionBookingInactive"] = "รายการจองนี้สิ้นสุดแล้ว",
+            ["ExtensionAccountMismatch"] = "ข้อมูล Session, ผู้ใช้, Booking หรือเครื่องไม่ตรงกัน",
+            ["ExtensionUnavailable"] = "ไม่สามารถตรวจสอบสิทธิ์ต่อเวลาได้ กรุณาออกจากระบบ",
         };
 
     private static readonly IReadOnlyDictionary<string, string> English =
@@ -254,6 +265,17 @@ public sealed class LanguageService
             ["SheetMinutesInvalid"] = "Row {0}: AllowedMinutes must be a number of 0 or greater",
             ["SheetRoleInvalid"] = "Row {0}: Role must be user or admin",
             ["SheetActiveInvalid"] = "Row {0}: IsActive must be TRUE or FALSE",
+            ["SessionExpiredHeading"] = "Usage time expired",
+            ["SessionExpiredCountdown"] = "Choose an action within {0} seconds",
+            ["ExtendThreeHours"] = "Extend 3 hours",
+            ["ExtensionChecking"] = "Checking extension availability...",
+            ["ExtensionRetry"] = "Connection failed. Try extending again",
+            ["ExtensionLimitReached"] = "The extension limit has been reached",
+            ["ExtensionCrossesMidnight"] = "The new end time would cross midnight or provide less than 3 hours",
+            ["ExtensionNextBookingConflict"] = "Another booking is scheduled, so this session cannot be extended",
+            ["ExtensionBookingInactive"] = "This booking is no longer active",
+            ["ExtensionAccountMismatch"] = "The session, user, booking, or machine does not match",
+            ["ExtensionUnavailable"] = "Extension availability could not be checked. Please log out",
         };
 
     public string CurrentLanguage { get; private set; } = "th";

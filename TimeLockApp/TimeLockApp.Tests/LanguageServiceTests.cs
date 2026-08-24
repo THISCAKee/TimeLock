@@ -8,6 +8,7 @@ internal static class LanguageServiceTests
         yield return ("language service switches to English", SwitchesToEnglish);
         yield return ("language service formats placeholders", FormatsPlaceholders);
         yield return ("language service falls back to key", FallsBackToKey);
+        yield return ("session extension messages exist in Thai and English", SessionExtensionMessagesExist);
     }
 
     private static void StartsInThai()
@@ -44,6 +45,48 @@ internal static class LanguageServiceTests
         LanguageService service = new();
 
         AssertEqual("MissingKey", service.Get("MissingKey"));
+    }
+
+    private static void SessionExtensionMessagesExist()
+    {
+        string[] keys =
+        [
+            "SessionExpiredHeading",
+            "SessionExpiredCountdown",
+            "ExtendThreeHours",
+            "ExtensionChecking",
+            "ExtensionRetry",
+            "ExtensionLimitReached",
+            "ExtensionCrossesMidnight",
+            "ExtensionNextBookingConflict",
+            "ExtensionBookingInactive",
+            "ExtensionAccountMismatch",
+            "ExtensionUnavailable"
+        ];
+        LanguageService service = new();
+
+        foreach (string key in keys)
+        {
+            string thai = service.Get(key);
+            AssertNotFallback(key, thai, "Thai");
+        }
+        AssertEqual("ต่อเวลา 3 ชั่วโมง", service.Get("ExtendThreeHours"));
+
+        service.SetLanguage("en");
+        foreach (string key in keys)
+        {
+            string english = service.Get(key);
+            AssertNotFallback(key, english, "English");
+        }
+        AssertEqual("Extend 3 hours", service.Get("ExtendThreeHours"));
+    }
+
+    private static void AssertNotFallback(string key, string actual, string language)
+    {
+        if (string.IsNullOrWhiteSpace(actual) || actual == key)
+        {
+            throw new InvalidOperationException($"{language} value is missing for '{key}'.");
+        }
     }
 
     private static void AssertEqual(string expected, string actual)
