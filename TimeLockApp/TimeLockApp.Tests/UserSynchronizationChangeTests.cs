@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using TimeLockApp.Data;
 using TimeLockApp.Models;
 
@@ -48,6 +49,31 @@ internal static class UserSynchronizationChangeTests
     private static void DeletionReportsChangeAndKeepsLocalUsers()
     {
         using var fixture = new TestDatabase();
+        using (var connection = new SqliteConnection(
+                   $"Data Source={fixture.DatabasePath}"))
+        {
+            connection.Open();
+
+            using SqliteCommand command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO users (
+                    username,
+                    password,
+                    allowed_minutes,
+                    role,
+                    is_active,
+                    is_local_only)
+                VALUES (
+                    'admin',
+                    'password',
+                    10,
+                    'admin',
+                    1,
+                    1);
+                """;
+            command.ExecuteNonQuery();
+        }
+
         fixture.Service.SynchronizeUsers(
             new[] { SheetUser(504, "deleted-user") });
 

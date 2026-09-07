@@ -13,9 +13,6 @@ namespace TimeLockApp;
 
 public partial class MainWindow : Window
 {
-    private const string UserWebsiteUrl =
-        "https://libmsu-ai.vercel.app/";
-
     private const int WhKeyboardLl = 13;
     private const int WmKeyDown = 0x0100;
     private const int WmSysKeyDown = 0x0104;
@@ -508,7 +505,7 @@ public partial class MainWindow : Window
         _timer.Start();
 
         ChromeLaunchResult launchResult =
-            _chromeLauncherService.TryOpen(UserWebsiteUrl);
+            _chromeLauncherService.TryOpen(WebsiteEndpoints.UserWebsiteUrl);
 
         if (!launchResult.IsSuccessful && _usageWindow != null)
         {

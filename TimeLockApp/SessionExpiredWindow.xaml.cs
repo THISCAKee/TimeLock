@@ -67,7 +67,7 @@ public partial class SessionExpiredWindow : Window
         {
             "EXTENSION_LIMIT_REACHED" => App.Language.Get("ExtensionLimitReached"),
             "EXTENSION_CROSSES_MIDNIGHT" => App.Language.Get("ExtensionCrossesMidnight"),
-            "EXTENSION_NEXT_BOOKING_CONFLICT" => App.Language.Get("ExtensionNextBookingConflict"),
+            "EXTENSION_NEXT_BOOKING_CONFLICT" => App.Language.Get("SessionExpiredNextBooking"),
             "EXTENSION_BOOKING_INACTIVE" => App.Language.Get("ExtensionBookingInactive"),
             "EXTENSION_ACCOUNT_MISMATCH" => App.Language.Get("ExtensionAccountMismatch"),
             _ => App.Language.Get("ExtensionUnavailable")
@@ -135,5 +135,14 @@ public partial class SessionExpiredWindow : Window
         }
 
         base.OnPreviewKeyDown(e);
+    }
+
+    protected override void OnDeactivated(EventArgs e)
+    {
+        base.OnDeactivated(e);
+
+        Activate();
+        Topmost = false;
+        Topmost = true;
     }
 }

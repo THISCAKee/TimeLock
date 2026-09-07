@@ -35,6 +35,7 @@ tests = tests
     .Concat(AutomaticSyncOrchestratorTests.All())
     .Concat(AutomaticSyncStatusTests.All())
     .Concat(TimelockGatewayTests.All())
+    .Concat(WebsiteEndpointsTests.All())
     .Concat(WebView2ProfilePathTests.All())
     .ToArray();
 

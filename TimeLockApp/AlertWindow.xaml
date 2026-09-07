@@ -7,9 +7,10 @@
         ResizeMode="NoResize"
         Topmost="True"
         ShowInTaskbar="False"
-        Background="#CC000000">
+        Background="#CC000000"
+        Focusable="True">
 
-    <Grid>
+    <Grid Background="#CC000000">
         <Border Width="460"
                 Padding="30"
                 Background="#2D2D30"

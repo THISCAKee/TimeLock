@@ -53,6 +53,7 @@ internal static class LanguageServiceTests
         [
             "SessionExpiredHeading",
             "SessionExpiredCountdown",
+            "SessionExpiredNextBooking",
             "ExtendThreeHours",
             "ExtensionChecking",
             "ExtensionRetry",
@@ -71,6 +72,9 @@ internal static class LanguageServiceTests
             AssertNotFallback(key, thai, "Thai");
         }
         AssertEqual("ต่อเวลา 3 ชั่วโมง", service.Get("ExtendThreeHours"));
+        AssertEqual(
+            "หมดเวลาใช้งานและมีคิวจองถัดไป จึงไม่สามารถต่อเวลาได้",
+            service.Get("SessionExpiredNextBooking"));
 
         service.SetLanguage("en");
         foreach (string key in keys)
@@ -79,6 +83,9 @@ internal static class LanguageServiceTests
             AssertNotFallback(key, english, "English");
         }
         AssertEqual("Extend 3 hours", service.Get("ExtendThreeHours"));
+        AssertEqual(
+            "Your usage time has expired and another booking is scheduled, so you cannot extend this session.",
+            service.Get("SessionExpiredNextBooking"));
     }
 
     private static void AssertNotFallback(string key, string actual, string language)
