@@ -53,12 +53,13 @@
                                Margin="0,2,0,0"/>
                 </StackPanel>
 
-                <Button Grid.Column="2"
-                        Content="{DynamicResource Cancel}"
-                        Width="100"
+                <Button x:Name="BackToLoginButton"
+                        Grid.Column="2"
+                        Content="{DynamicResource BackToLogin}"
+                        Width="150"
                         Height="38"
                         Style="{StaticResource SecondaryButtonStyle}"
-                        Click="CancelButton_Click"/>
+                        Click="BackToLoginButton_Click"/>
             </Grid>
         </Border>
 
@@ -117,6 +118,21 @@
                                 Height="42"
                                 Style="{StaticResource PrimaryButtonStyle}"
                                 Click="RetryButton_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="SuccessPanel"
+                        Visibility="Collapsed"
+                        Background="White">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Width="420">
+                        <TextBlock Text="{DynamicResource AuthSuccessReady}"
+                                   Foreground="#111827"
+                                   FontSize="22"
+                                   FontWeight="SemiBold"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
             </Grid>

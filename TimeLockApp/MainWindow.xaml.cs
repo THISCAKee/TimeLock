@@ -218,6 +218,8 @@ public partial class MainWindow : Window
                 NetworkStatusTextBlock.Text =
                     App.Language.Get("InternetConnectedSyncing");
 
+                RestoreLoginWindow();
+
                 await _automaticSync.RunAsync(
                     AutomaticSyncTrigger.InternetAuthenticated);
             }
@@ -235,15 +237,20 @@ public partial class MainWindow : Window
             _isNetworkAuthOpen = false;
             NetworkAuthButton.IsEnabled = true;
 
-            Show();
-            WindowState = WindowState.Maximized;
-            Topmost = true;
-            Activate();
-            Focus();
-
-            UsernameTextBox.Focus();
+            RestoreLoginWindow();
         }
     }
+
+    private void RestoreLoginWindow()
+    {
+        Show();
+        WindowState = WindowState.Maximized;
+        Topmost = true;
+        Activate();
+        Focus();
+        UsernameTextBox.Focus();
+    }
+
     private static IntPtr InstallKeyboardHook(LowLevelKeyboardProc keyboardProc)
     {
         using Process currentProcess = Process.GetCurrentProcess();

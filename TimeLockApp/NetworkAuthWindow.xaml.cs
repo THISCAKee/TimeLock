@@ -1,6 +1,10 @@
 using Microsoft.Web.WebView2.Core;
 using System;
 using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -10,14 +14,29 @@ namespace TimeLockApp;
 
 public partial class NetworkAuthWindow : Window
 {
-    private const string AuthenticationUrl =
-        "http://10.99.92.1/webAuth/index.htm?www.msftconnecttest.com/redirect";
+    private const string WiredAuthenticationUrl =
+        "http://10.10.10.10/webAuth/";
 
-    private const string SuccessUrl =
-        "https://authen.msu.ac.th/";
+    private const string WirelessAuthenticationUrl =
+        "https://captive.msu.ac.th:8443/portal/PortalSetup.action?portal=c1bfd1e3-dcdd-4f8c-93ea-1e3d294cf4a4&sessionId=0B0B710A000E749D62D97EBF&action=cwa&redirect=http%3A%2F%2Fwww.msftconnecttest.com%2Fredirect";
+
+    private const string ConnectivityProbeUrl =
+        "http://www.msftconnecttest.com/connecttest.txt";
+
+    private const string ConnectivitySuccessHost =
+        "www.msftconnecttest.com";
+
+    private const string ConnectivitySuccessPath =
+        "/connecttest.txt";
+
+    private const string ConnectivityRedirectPath =
+        "/redirect";
 
     private bool _allowClose;
     private bool _authenticationCompleted;
+    private bool _isWirelessAuthentication;
+    private bool _isDiscoveringWirelessPortal;
+    private string? _discoveredWirelessPortalUrl;
     private readonly InternetConnectivityService _connectivityService = new();
     private bool _isCheckingConnection;
     public bool AuthenticationCompleted => _authenticationCompleted;
@@ -43,6 +62,8 @@ public partial class NetworkAuthWindow : Window
         {
             LoadingPanel.Visibility = Visibility.Visible;
             ErrorPanel.Visibility = Visibility.Collapsed;
+            SuccessPanel.Visibility = Visibility.Collapsed;
+            AuthWebView.Visibility = Visibility.Visible;
 
             string userDataFolder = WebView2ProfilePath.GetUserDataFolder();
             Directory.CreateDirectory(userDataFolder);
@@ -64,7 +85,7 @@ public partial class NetworkAuthWindow : Window
             AuthWebView.CoreWebView2.NavigationStarting += CoreWebView2_NavigationStarting;
             AuthWebView.CoreWebView2.NavigationCompleted += CoreWebView2_NavigationCompleted;
 
-            AuthWebView.CoreWebView2.Navigate(AuthenticationUrl);
+            AuthWebView.CoreWebView2.Navigate(GetAuthenticationUrl());
         }
         catch (Exception ex)
         {
@@ -78,9 +99,15 @@ public partial class NetworkAuthWindow : Window
     {
         StatusTextBlock.Text = App.Language.Get("ConnectingAuth");
 
-        if (IsAuthenticationSuccessUrl(e.Uri))
+        if (_isWirelessAuthentication && IsWirelessPortalUrl(e.Uri))
         {
-            CompleteAuthentication();
+            _discoveredWirelessPortalUrl = e.Uri;
+        }
+
+        if (IsConnectivityRedirectUrl(e.Uri))
+        {
+            e.Cancel = true;
+            AuthWebView.CoreWebView2.Navigate(ConnectivityProbeUrl);
         }
     }
 
@@ -89,16 +116,23 @@ public partial class NetworkAuthWindow : Window
      CoreWebView2NavigationCompletedEventArgs e)
     {
         LoadingPanel.Visibility = Visibility.Collapsed;
+        string currentUrl = AuthWebView.Source?.ToString() ?? "";
 
         if (!e.IsSuccess)
         {
+            if (_isWirelessAuthentication &&
+                _isDiscoveringWirelessPortal &&
+                IsConnectivitySuccessUrl(currentUrl))
+            {
+                NavigateToWirelessPortal();
+                return;
+            }
+
             ShowError(App.Language.Get("LoadWebFailed", e.WebErrorStatus));
             return;
         }
 
-        string currentUrl = AuthWebView.Source?.ToString() ?? "";
-
-        if (IsAuthenticationSuccessUrl(currentUrl))
+        if (IsConnectivitySuccessUrl(currentUrl))
         {
             CompleteAuthentication();
             return;
@@ -106,16 +140,161 @@ public partial class NetworkAuthWindow : Window
 
         StatusTextBlock.Text = App.Language.Get("NetworkLoginPrompt");
     }
-    private static bool IsAuthenticationSuccessUrl(string? url)
+
+    private string GetAuthenticationUrl()
     {
-        if (string.IsNullOrWhiteSpace(url))
+        _isWirelessAuthentication = IsWirelessNetworkSelected();
+        _isDiscoveringWirelessPortal = _isWirelessAuthentication;
+        _discoveredWirelessPortalUrl = null;
+
+        if (_isWirelessAuthentication)
+        {
+            // Let the captive network redirect to its current portal URL and session ID.
+            return ConnectivityProbeUrl;
+        }
+
+        return IsWiredNetworkConnected()
+            ? WiredAuthenticationUrl
+            : ConnectivityProbeUrl;
+    }
+
+    private static bool IsWirelessNetworkSelected()
+    {
+        NetworkInterface? routedInterface = GetDefaultRouteNetworkInterface();
+
+        if (routedInterface?.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+        {
+            return true;
+        }
+
+        if (routedInterface is not null &&
+            IsWiredNetworkType(routedInterface.NetworkInterfaceType))
         {
             return false;
         }
 
-        return url.StartsWith(
-            SuccessUrl,
-            StringComparison.OrdinalIgnoreCase);
+        return IsWirelessNetworkConnected() && !IsWiredNetworkConnected();
+    }
+
+    private static NetworkInterface? GetDefaultRouteNetworkInterface()
+    {
+        try
+        {
+            using Socket routeSocket = new(
+                AddressFamily.InterNetwork,
+                SocketType.Dgram,
+                ProtocolType.Udp);
+
+            // Connecting a UDP socket selects the OS route without sending a packet.
+            routeSocket.Connect(new IPEndPoint(IPAddress.Parse("1.1.1.1"), 53));
+
+            if (routeSocket.LocalEndPoint is not IPEndPoint localEndpoint)
+            {
+                return null;
+            }
+
+            return NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(networkInterface =>
+                networkInterface.GetIPProperties().UnicastAddresses.Any(address =>
+                    address.Address.Equals(localEndpoint.Address)));
+        }
+        catch (SocketException)
+        {
+            return null;
+        }
+        catch (NetworkInformationException)
+        {
+            return null;
+        }
+    }
+
+    private static bool IsWiredNetworkConnected()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces().Any(networkInterface =>
+                IsWiredNetworkType(networkInterface.NetworkInterfaceType) &&
+                networkInterface.OperationalStatus == OperationalStatus.Up &&
+                networkInterface.GetIPProperties().UnicastAddresses.Any(address =>
+                    address.Address.AddressFamily == AddressFamily.InterNetwork &&
+                    !IPAddress.IsLoopback(address.Address)));
+        }
+        catch (NetworkInformationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsWirelessNetworkConnected()
+    {
+        try
+        {
+            return NetworkInterface.GetAllNetworkInterfaces().Any(networkInterface =>
+                networkInterface.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 &&
+                networkInterface.OperationalStatus == OperationalStatus.Up &&
+                networkInterface.GetIPProperties().UnicastAddresses.Any(address =>
+                    address.Address.AddressFamily == AddressFamily.InterNetwork &&
+                    !IPAddress.IsLoopback(address.Address)));
+        }
+        catch (NetworkInformationException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsWiredNetworkType(NetworkInterfaceType type)
+    {
+        return type is NetworkInterfaceType.Ethernet or
+            NetworkInterfaceType.Ethernet3Megabit or
+            NetworkInterfaceType.FastEthernetT or
+            NetworkInterfaceType.FastEthernetFx or
+            NetworkInterfaceType.GigabitEthernet;
+    }
+
+    private static bool IsConnectivitySuccessUrl(string? url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
+        {
+            return false;
+        }
+
+        return uri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+            uri.Host.Equals(ConnectivitySuccessHost, StringComparison.OrdinalIgnoreCase) &&
+            uri.AbsolutePath.Equals(ConnectivitySuccessPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsConnectivityRedirectUrl(string? url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
+        {
+            return false;
+        }
+
+        return uri.Host.Equals(ConnectivitySuccessHost, StringComparison.OrdinalIgnoreCase) &&
+            uri.AbsolutePath.Equals(ConnectivityRedirectPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsWirelessPortalUrl(string? url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) &&
+            uri.Host.Equals("captive.msu.ac.th", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void NavigateToWirelessPortal()
+    {
+        if (AuthWebView.CoreWebView2 is null)
+        {
+            return;
+        }
+
+        _isDiscoveringWirelessPortal = false;
+        LoadingPanel.Visibility = Visibility.Visible;
+        ErrorPanel.Visibility = Visibility.Collapsed;
+        SuccessPanel.Visibility = Visibility.Collapsed;
+        AuthWebView.Visibility = Visibility.Visible;
+        StatusTextBlock.Text = App.Language.Get("ConnectingAuth");
+
+        AuthWebView.CoreWebView2.Navigate(
+            _discoveredWirelessPortalUrl ?? WirelessAuthenticationUrl);
     }
 
     private async void CompleteAuthentication()
@@ -140,15 +319,22 @@ public partial class NetworkAuthWindow : Window
             {
                 StatusTextBlock.Text = App.Language.Get("AuthSuccessNoInternet");
 
+                if (_isWirelessAuthentication)
+                {
+                    NavigateToWirelessPortal();
+                }
+
                 _isCheckingConnection = false;
                 return;
             }
 
             _authenticationCompleted = true;
-            _allowClose = true;
-
-            DialogResult = true;
-            Close();
+            _isCheckingConnection = false;
+            LoadingPanel.Visibility = Visibility.Collapsed;
+            ErrorPanel.Visibility = Visibility.Collapsed;
+            AuthWebView.Visibility = Visibility.Collapsed;
+            SuccessPanel.Visibility = Visibility.Visible;
+            StatusTextBlock.Text = App.Language.Get("AuthSuccessReady");
         }
         catch (Exception ex)
         {
@@ -159,20 +345,20 @@ public partial class NetworkAuthWindow : Window
         }
     }
 
+    private void BackToLoginButton_Click(
+        object sender,
+        RoutedEventArgs e)
+    {
+        _allowClose = true;
+        DialogResult = _authenticationCompleted;
+        Close();
+    }
+
     private async void RetryButton_Click(
         object sender,
         RoutedEventArgs e)
     {
         await InitializeWebViewAsync();
-    }
-
-    private void CancelButton_Click(
-        object sender,
-        RoutedEventArgs e)
-    {
-        _allowClose = true;
-        DialogResult = false;
-        Close();
     }
 
     private void ShowError(string message)
