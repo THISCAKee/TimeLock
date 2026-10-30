@@ -9,6 +9,7 @@ internal static class LanguageServiceTests
         yield return ("language service formats placeholders", FormatsPlaceholders);
         yield return ("language service falls back to key", FallsBackToKey);
         yield return ("session extension messages exist in Thai and English", SessionExtensionMessagesExist);
+        yield return ("usage guide messages exist in Thai and English", UsageGuideMessagesExist);
     }
 
     private static void StartsInThai()
@@ -86,6 +87,41 @@ internal static class LanguageServiceTests
         AssertEqual(
             "Your usage time has expired and another booking is scheduled, so you cannot extend this session.",
             service.Get("SessionExpiredNextBooking"));
+    }
+
+    private static void UsageGuideMessagesExist()
+    {
+        string[] keys =
+        [
+            "UsageGuideTitle",
+            "UsageGuideIntro",
+            "UsageGuideBeforeTitle",
+            "UsageGuideBeforeBody",
+            "UsageGuideLoginTitle",
+            "UsageGuideLoginBody",
+            "UsageGuideInternetTitle",
+            "UsageGuideInternetBody",
+            "UsageGuideDuringTitle",
+            "UsageGuideDuringBody",
+            "UsageGuideFinishTitle",
+            "UsageGuideFinishBody",
+            "UsageGuideHelpTitle",
+            "UsageGuideHelpBody",
+            "UsageGuideFooter"
+        ];
+        LanguageService service = new();
+
+        foreach (string key in keys)
+        {
+            AssertNotFallback(key, service.Get(key), "Thai");
+        }
+
+        service.SetLanguage("en");
+
+        foreach (string key in keys)
+        {
+            AssertNotFallback(key, service.Get(key), "English");
+        }
     }
 
     private static void AssertNotFallback(string key, string actual, string language)
